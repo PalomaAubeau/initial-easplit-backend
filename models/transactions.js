@@ -6,9 +6,8 @@ const userSchema = mongoose.Schema({
   password: String,
   token: String,
   email: String,
-  events: [{ type: mongoose.Schema.Types.ObjectId, ref: "events" }],
   balance: Number, //zéro par défaut au départ
-  transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: "transactions" }],
+  events: [{ type: mongoose.Schema.Types.ObjectId, ref: "events" }],
 });
 
 const User = mongoose.model("users", userSchema);
