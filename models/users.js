@@ -5,10 +5,10 @@ const userSchema = mongoose.Schema({
   lastName: String,
   password: String,
   token: String,
-  phone: Number,
   email: String,
-  balance: Number, //zéro par défaut au départ
   events: [{ type: mongoose.Schema.Types.ObjectId, ref: "events" }],
+  balance: Number, //zéro par défaut au départ
+  transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: "transactions" }],
 });
 
 const User = mongoose.model("users", userSchema);
