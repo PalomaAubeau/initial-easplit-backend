@@ -3,40 +3,77 @@ var router = express.Router();
 
 require("../models/connection");
 const User = require("../models/users");
+const Event = require("../models/events");
 
 const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
+// Fonction pour ajouter un utilisateur à la liste des invités d'un événement
+function addUserToGuest(user, eventId, res) {
+    // On cherche l'événement avec l'ID donné
+    Event.findById(eventId).then((event) => {
+        if (event) {
+            // On vérifie si l'utilisateur n'est pas déjà invité à l'événement
+            const guestExist = event.guests.some(
+                (guest) => guest.email.toLowerCase() === user.email.toLowerCase()
+            );
+            // Si l'utilisateur n'est pas déjà invité, on l'ajoute à la liste des invités
+            if (!guestExist) {
+                event.guests.push({
+                    userId: user._id,
+                    email: user.email,
+                    share: 0,
+                    hasPaid: false,
+                });
+                // On sauvegarde l'événement
+                event.save().then(() => {
+                    res.json({ result: true });
+                });
+                // Si l'utilisateur est déjà invité, on renvoie une erreur
+            } else {
+                res.json({ result: true });
+            }
+        } else {
+            res.json({ result: false, error: "Événement non trouvé" });
+        }
+    });
+}
+
 // Route qui va créer un nouvel utilisateur temporaire suite à une invitation
 router.post("/invite", (req, res) => {
     // On vérifie si les champs sont bien remplis
-  if (!checkBody(req.body, ["email"])) {
-    res.json({ result: false, error: "Champs manquants ou vides" });
-    // On arrête la fonction si les champs ne sont pas remplis
-    return;
-  }
-// On vérifie si l'utilisateur existe déjà
-  User.findOne({ email: { $regex: new RegExp(req.body.email, "i") } }).then(
-    (data) => {
-        // Si l'utilisateur n'existe pas, on le crée
-      if (data === null) {
-        const newUser = new User({
-          email: req.body.email,
-          events: [req.body.eventId],
-        });
-// On sauvegarde le nouvel utilisateur
-        newUser.save().then((newDoc) => {
-          res.json({ result: true });
-        });
-    } else {
-        // Si l'utilisateur existe déjà, on ajoute l'événement à son compte
-        data.events.push(req.body.eventId);
-        data.save().then(updatedDoc => {
-            res.json({ result: true });
-        });
+    if (!checkBody(req.body, ["email", "eventId"])) {
+        res.json({ result: false, error: "Champs manquants ou vides" });
+        return;
     }
-});
+
+    // On vérifie si l'utilisateur existe déjà
+    User.findOne({ email: { $regex: new RegExp(req.body.email, "i") } }).then(
+        (data) => {
+            // Si l'utilisateur n'existe pas, on le crée
+            if (data === null) {
+                const newUser = new User({
+                    email: req.body.email,
+                    events: [req.body.eventId],
+                });
+                // On sauvegarde le nouvel utilisateur
+                newUser.save().then((newDoc) => {
+                    // On ajoute l'utilisateur en tant qu'invité à l'événement
+                    addUserToGuest(newDoc, req.body.eventId, res);
+                });
+            } else {
+                // Si l'utilisateur existe déjà, on ajoute l'événement à son compte
+                if (!data.events.includes(req.body.eventId)) {
+                    data.events.push(req.body.eventId);
+                }
+                data.save().then(updatedDoc => {
+                    // On ajoute l'utilisateur en tant qu'invité à l'événement
+                    addUserToGuest(updatedDoc, req.body.eventId, res);
+                });
+            }
+        }
+    );
 });
 // Route qui va créer un nouvel utilisateur
 router.post("/signup", (req, res) => {
