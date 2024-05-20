@@ -14,7 +14,7 @@ const eventSchema = mongoose.Schema({
       hasPaid: Boolean,
     },
   ],
-  transactions: transactionSchema,
+  transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: "transactions" }],
   totalSum: Number,
   shareAmount: Number,
 });
