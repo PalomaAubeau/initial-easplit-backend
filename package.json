@@ -17,9 +17,10 @@
     "fs": "^0.0.1-security",
     "mongoose": "^8.4.0",
     "morgan": "~1.9.1",
+    "node-fetch": "2",
+    "nodemailer": "^6.9.13",
     "uid2": "^1.0.0",
-    "uniqid": "^5.4.0",
-    "node-fetch": "2"
+    "uniqid": "^5.4.0"
   },
   "devDependencies": {
     "jest": "^28.1.1",

@@ -38,4 +38,16 @@ router.post("/createEvent", (req, res) => {
   }
 });
 
+// Route pour supprimer un événement
+router.delete("/event/:id", (req, res) => {
+  Event.deleteOne({ _id: req.params.id })
+    .then(result => {
+      if (result.deletedCount > 0) {
+        res.json({ result: true, message: "Event deleted successfully" });
+      } else {
+        res.json({ result: false, message: "Event not found" });
+      }
+    });
+});
+
 module.exports = router;
