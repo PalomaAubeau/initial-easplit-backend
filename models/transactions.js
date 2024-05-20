@@ -1,15 +1,20 @@
 const mongoose = require("mongoose");
 
-const userSchema = mongoose.Schema({
-  firstName: String,
-  lastName: String,
-  password: String,
-  token: String,
-  email: String,
-  balance: Number, //zéro par défaut au départ
-  events: [{ type: mongoose.Schema.Types.ObjectId, ref: "events" }],
+const transactionSchema = mongoose.Schema({
+  amount: Number,
+  date: Date,
+  invoice: String,
+  type: {
+    type: String,
+    enum: ["refound", "payment", "reload", "expense"],
+  },
+  eventId: { type: mongoose.Schema.Types.ObjectId, ref: "events" },
+  emitter: String,
+  recipient: String,
+  name: String,
+  category: String,
 });
 
-const User = mongoose.model("users", userSchema);
+const Transaction = mongoose.model("transactions", transactionSchema);
 
-module.exports = User;
+module.exports = Transaction;
