@@ -125,37 +125,36 @@ router.post("/signup", (req, res) => {
   // On cherche un utilisateur avec le même email
   User.findOne({ email: { $regex: new RegExp(req.body.email, "i") } }).then(
     (data) => {
-      if (data === null) {
-        // Si aucun utilisateur n'est trouvé, on crée un nouvel utilisateur
+      if (data !== null && data.password && data.firstName && data.lastName) {
+        // Si un utilisateur est trouvé avec non-empty password, firstName, and lastName, on renvoie une erreur
+        res.json({ result: false, error: "User already exists" });
+      } else {
+        // Si aucun utilisateur n'est trouvé, or the user has empty password, firstName, or lastName, on crée un nouvel utilisateur
         const hash = bcrypt.hashSync(req.body.password, 10);
-        const newUser = new User({
+        const updatedUser = {
           firstName: req.body.firstName,
           lastName: req.body.lastName,
           email: req.body.email,
           balance: 0,
           password: hash,
           token: uid2(32),
-          events: [],
-        });
+          events: data && data.events ? data.events : [],
+        };
 
-        // On sauvegarde le nouvel utilisateur
-        newUser.save().then((newDoc) => {
-          // Une fois l'utilisateur sauvegardé, on renvoie un résultat positif et le token de l'utilisateur
-          res.json({ result: true, token: newDoc.token });
-        });
-      } else {
-        // Si un utilisateur est trouvé, on met à jour ses informations
-        const hash = bcrypt.hashSync(req.body.password, 10);
-        data.firstName = req.body.firstName;
-        data.lastName = req.body.lastName;
-        data.password = hash;
-        data.token = uid2(32);
-
-        // On sauvegarde l'utilisateur mis à jour
-        data.save().then((updatedDoc) => {
-          // Une fois l'utilisateur mis à jour sauvegardé, on renvoie un résultat positif et le token de l'utilisateur
-          res.json({ result: true, token: updatedDoc.token });
-        });
+        // On met à jour l'utilisateur s'il existe déjà, sinon on le crée
+        if (data !== null) {
+          User.updateOne({ _id: data._id }, updatedUser).then(() => {
+            // Une fois l'utilisateur mis à jour, on renvoie un résultat positif et le token de l'utilisateur
+            res.json({ result: true, token: updatedUser.token });
+          });
+        } else {
+          // On crée un nouvel utilisateur
+          const newUser = new User(updatedUser);
+          newUser.save().then((newDoc) => {
+            // Une fois l'utilisateur créé, on renvoie un résultat positif et le token de l'utilisateur
+            res.json({ result: true, token: newDoc.token });
+          });
+        }
       }
     }
   );
