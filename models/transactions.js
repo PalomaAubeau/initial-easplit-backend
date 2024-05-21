@@ -15,7 +15,7 @@ const transactionSchema = mongoose.Schema({
   category: String,
 });
 
-transactionSchema.pre('save', function(next) {
+transactionSchema.pre("save", function (next) {
   let parts = this.date.split("/");
   let dateObject = new Date(+parts[2], parts[1] - 1, +parts[0]);
   this.date = dateObject;
