@@ -228,31 +228,31 @@ router.get("/user/:id", (req, res) => {
   });
 });
 
-// Route pour mettre à jour le solde du participant
-router.put("/user/:id/transaction", (req, res) => {
-  // On cherche l'utilisateur avec l'ID donné
-  User.findById(req.params.id).then((user) => {
-    // On récupère la transaction envoyée dans le body de la requête
-    const transaction = req.body.transaction;
-    // On vérifie le type de transaction pour mettre à jour le solde de l'utilisateur
-    if (
-      ["payment", "expense"].includes(transaction.type) &&
-      transaction.emitter === user._id.toString()
-    ) {
-      // On déduit si la transaction est un paiement ou une dépense et que l'utilisateur est l'émetteur
-      user.balance -= transaction.amount;
-    } else if (
-      ["refound", "reload"].includes(transaction.type) &&
-      transaction.recipient === user._id.toString()
-    ) {
-      // On ajoute si la transaction est un remboursement ou un rechargement et que l'utilisateur est le destinataire
-      user.balance += transaction.amount;
-    }
-    // On sauvegarde l'utilisateur avec le nouveau solde
-    user.save().then(() => {
-      res.json({ result: "Balance updated", balance: user.balance });
-    });
-  });
-});
+// // Route pour mettre à jour le solde du participant
+// router.put("/user/:id/transaction", (req, res) => {
+//   // On cherche l'utilisateur avec l'ID donné
+//   User.findById(req.params.id).then((user) => {
+//     // On récupère la transaction envoyée dans le body de la requête
+//     const transaction = req.body.transaction;
+//     // On vérifie le type de transaction pour mettre à jour le solde de l'utilisateur
+//     if (
+//       ["payment", "expense"].includes(transaction.type) &&
+//       transaction.emitter === user._id.toString()
+//     ) {
+//       // On déduit si la transaction est un paiement ou une dépense et que l'utilisateur est l'émetteur
+//       user.balance -= transaction.amount;
+//     } else if (
+//       ["refound", "reload"].includes(transaction.type) &&
+//       transaction.recipient === user._id.toString()
+//     ) {
+//       // On ajoute si la transaction est un remboursement ou un rechargement et que l'utilisateur est le destinataire
+//       user.balance += transaction.amount;
+//     }
+//     // On sauvegarde l'utilisateur avec le nouveau solde
+//     user.save().then(() => {
+//       res.json({ result: "Balance updated", balance: user.balance });
+//     });
+//   });
+// });
 
 module.exports = router;

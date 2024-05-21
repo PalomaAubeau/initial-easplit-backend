@@ -5,6 +5,8 @@ const mongoose = require("mongoose");
 
 require("../models/connection");
 const Event = require("../models/events");
+const User = require("../models/users");
+const Transaction = require("../models/transactions");
 
 const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
@@ -64,6 +66,19 @@ router.get("/event/:id", (req, res) => {
   Event.findById(req.params.id).then((event) => {
     res.json(event);
   });
+});
+
+// Route pour récupérer les événements de l'utilisateur connécté
+router.get('/userevents/:token', (req, res) => {
+  User.findOne({ token: req.params.token })
+    .populate('events')
+    .then(user => {
+      if (!user) {
+        res.json({ result: false, error: 'User not found' });
+        return;
+      }
+      res.json({ result: true, events: user.events });
+    });
 });
 
 module.exports = router;
