@@ -26,13 +26,18 @@ router.post("/create", (req, res) => {
   if (!checkBody(req.body, ["date", "invoice", "type", "emitter"])) {
     return handleResponse(res, false, { error: "Champs manquants ou vides" });
   }
-// On vérifie si le type de transaction est valide
-  if (req.body.type !== "refound" && (req.body.amount.toString().split(".")[1] || "").length > 2) {
-    return handleResponse(res, false, { error: "Amount should not have more than two decimal places" });
+  // On vérifie si le type de transaction est valide
+  if (
+    req.body.type !== "refound" &&
+    (req.body.amount.toString().split(".")[1] || "").length > 2
+  ) {
+    return handleResponse(res, false, {
+      error: "Amount should not have more than two decimal places",
+    });
   }
-// On crée une nouvelle transaction
+  // On crée une nouvelle transaction
   const transaction = new Transaction(req.body);
-// On vérifie le type de transaction
+  // On vérifie le type de transaction
   switch (req.body.type) {
     case "reload":
       // On vérifie si l'utilisateur existe
@@ -44,14 +49,16 @@ router.post("/create", (req, res) => {
         user.balance += Number(req.body.amount);
         // On vérifie si le solde est négatif
         if (user.balance < 0) {
-          return handleResponse(res, false, { error: "Invalid operation: balance cannot be negative" });
+          return handleResponse(res, false, {
+            error: "Invalid operation: balance cannot be negative",
+          });
           // On sauvegarde l'utilisateur
         }
         user.save().then(() => handleTransaction(transaction, res));
       });
       //
       break;
-  
+
     default:
       // On vérifie si l'événement existe
       Event.findById(req.body.emitter).then((event) => {
@@ -63,29 +70,42 @@ router.post("/create", (req, res) => {
           case "expense":
             // On vérifie si le montant est supérieur au solde de l'événement
             if (Number(event.totalSum || 0) - Number(req.body.amount) < 0) {
-              return handleResponse(res, false, { error: "Insufficient funds in event total" });
+              return handleResponse(res, false, {
+                error: "Insufficient funds in event total",
+              });
             }
             // On soustrait le montant au solde de l'événement
-            event.totalSum = Number((Number(event.totalSum || 0) - Number(req.body.amount)).toFixed(2));
+            event.totalSum = Number(
+              (Number(event.totalSum || 0) - Number(req.body.amount)).toFixed(2)
+            );
             break;
-            // On vérifie si l'utilisateur est un invité
+          // On vérifie si l'utilisateur est un invité
           case "payment":
             // On vérifie si l'utilisateur est un invité
-            const isGuest = event.guests.some(guest => guest.userId.toString() === req.body.recipient);
+            const isGuest = event.guests.some(
+              (guest) => guest.userId.toString() === req.body.recipient
+            );
             // On renvoie une erreur si l'utilisateur n'est pas un invité
             if (!isGuest) {
-              return handleResponse(res, false, { error: "User must be a guest in the event to make a payment" });
+              return handleResponse(res, false, {
+                error: "User must be a guest in the event to make a payment",
+              });
             }
             // On ajoute le montant au solde de l'événement
-            event.totalSum = Number((Number(event.totalSum || 0) + Number(req.body.amount)).toFixed(2));
+            event.totalSum = Number(
+              (Number(event.totalSum || 0) + Number(req.body.amount)).toFixed(2)
+            );
             break;
-            // On vérifie si le montant est supérieur au solde de l'événement
+          // On vérifie si le montant est supérieur au solde de l'événement
           case "refound":
             if (event.shareAmount === 0) {
-              return handleResponse(res, false, { error: "Invalid operation: share amount cannot be zero" });
+              return handleResponse(res, false, {
+                error: "Invalid operation: share amount cannot be zero",
+              });
             }
             // On vérifie si le montant est supérieur au solde de l'événement
-            const perShareAmount = Number(event.totalSum || 0) / event.shareAmount;
+            const perShareAmount =
+              Number(event.totalSum || 0) / event.shareAmount;
             event.guests.forEach((guest) => {
               // On vérifie si l'utilisateur est un invité
               User.findById(guest.userId).then((user) => {

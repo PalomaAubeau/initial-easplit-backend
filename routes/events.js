@@ -12,8 +12,10 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
+// Route pour créer un événement
 router.post("/createEvent", (req, res) => {
   if (
+    // On vérifie si les champs sont bien remplis
     !checkBody(req.body, [
       "organizer",
       "name",
@@ -22,16 +24,20 @@ router.post("/createEvent", (req, res) => {
       "description",
     ])
   ) {
+    // Si un champ est manquant ou vide, on renvoie une erreur
     res.json({ result: false, error: "Missing or empty fields" });
     return;
   }
 
-  // Check if eventDate and paymentDate are valid dates
-  if (isNaN(new Date(req.body.eventDate)) || isNaN(new Date(req.body.paymentDate))) {
+  // On vérifie si les dates sont valides
+  if (
+    isNaN(new Date(req.body.eventDate)) ||
+    isNaN(new Date(req.body.paymentDate))
+  ) {
     res.json({ result: false, error: "Invalid date" });
     return;
   }
-
+  // On crée un nouvel événement
   const newEvent = new Event({
     organizer: req.body.organizer,
     name: req.body.name,
@@ -43,7 +49,7 @@ router.post("/createEvent", (req, res) => {
     shareAmount: 0,
     transactions: [],
   });
-
+  // On sauvegarde l'événement
   newEvent.save().then(() => {
     res.json({ result: "Event successfully created" });
   });
@@ -51,10 +57,13 @@ router.post("/createEvent", (req, res) => {
 
 // Route pour supprimer un événement
 router.delete("/event/:id", (req, res) => {
+  // On supprime l'événement avec l'id donné
   Event.deleteOne({ _id: req.params.id }).then((result) => {
+    // Si l'événement est supprimé, on renvoie un message de succès
     if (result.deletedCount > 0) {
       res.json({ result: true, message: "Event deleted successfully" });
     } else {
+      // Sinon, on renvoie une erreur
       res.json({ result: false, message: "Event not found" });
     }
   });
