@@ -30,6 +30,9 @@ router.post("/createEvent", (req, res) => {
       paymentDate: new Date(req.body.paymentDate),
       description: req.body.description,
       guests: req.body.guests,
+      totalSum: 0,
+      shareAmount: 0,
+      transactions: [],
     });
 
     newEvent.save().then(() => {
@@ -40,26 +43,25 @@ router.post("/createEvent", (req, res) => {
 
 // Route pour supprimer un événement
 router.delete("/event/:id", (req, res) => {
-  Event.deleteOne({ _id: req.params.id })
-    .then(result => {
-      if (result.deletedCount > 0) {
-        res.json({ result: true, message: "Event deleted successfully" });
-      } else {
-        res.json({ result: false, message: "Event not found" });
-      }
-    });
+  Event.deleteOne({ _id: req.params.id }).then((result) => {
+    if (result.deletedCount > 0) {
+      res.json({ result: true, message: "Event deleted successfully" });
+    } else {
+      res.json({ result: false, message: "Event not found" });
+    }
+  });
 });
 
 // Route pour récupérer tous les événements
 router.get("/events", (req, res) => {
-  Event.find().then(events => {
+  Event.find().then((events) => {
     res.json(events);
   });
 });
 
 // Route pour récupérer un événement
 router.get("/event/:id", (req, res) => {
-  Event.findById(req.params.id).then(event => {
+  Event.findById(req.params.id).then((event) => {
     res.json(event);
   });
 });

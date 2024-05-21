@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const transactionSchema = mongoose.Schema({
   amount: Number,
-  date: Date,
+  date: String,
   invoice: String,
   type: {
     type: String,
@@ -13,6 +13,13 @@ const transactionSchema = mongoose.Schema({
   recipient: String,
   name: String,
   category: String,
+});
+
+transactionSchema.pre('save', function(next) {
+  let parts = this.date.split("/");
+  let dateObject = new Date(+parts[2], parts[1] - 1, +parts[0]);
+  this.date = dateObject;
+  next();
 });
 
 const Transaction = mongoose.model("transactions", transactionSchema);
