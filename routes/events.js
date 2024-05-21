@@ -24,23 +24,29 @@ router.post("/createEvent", (req, res) => {
   ) {
     res.json({ result: false, error: "Missing or empty fields" });
     return;
-  } else {
-    const newEvent = new Event({
-      organizer: req.body.organizer,
-      name: req.body.name,
-      eventDate: new Date(req.body.eventDate),
-      paymentDate: new Date(req.body.paymentDate),
-      description: req.body.description,
-      guests: req.body.guests,
-      totalSum: 0,
-      shareAmount: 0,
-      transactions: [],
-    });
-
-    newEvent.save().then(() => {
-      res.json({ result: "Event successfully created" });
-    });
   }
+
+  // Check if eventDate and paymentDate are valid dates
+  if (isNaN(new Date(req.body.eventDate)) || isNaN(new Date(req.body.paymentDate))) {
+    res.json({ result: false, error: "Invalid date" });
+    return;
+  }
+
+  const newEvent = new Event({
+    organizer: req.body.organizer,
+    name: req.body.name,
+    eventDate: new Date(req.body.eventDate),
+    paymentDate: new Date(req.body.paymentDate),
+    description: req.body.description,
+    guests: req.body.guests,
+    totalSum: 0,
+    shareAmount: 0,
+    transactions: [],
+  });
+
+  newEvent.save().then(() => {
+    res.json({ result: "Event successfully created" });
+  });
 });
 
 // Route pour supprimer un événement

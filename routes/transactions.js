@@ -8,92 +8,134 @@ const Transaction = require("../models/transactions");
 
 const { checkBody } = require("../modules/checkBody");
 
+// Fonction pour gérer les réponses
+const handleResponse = (res, result, data) => {
+  res.json({ result, ...data });
+};
+
+// Fonction pour gérer les transactions
+const handleTransaction = (transaction, res) => {
+  transaction.save().then(() => {
+    handleResponse(res, true, { transaction });
+  });
+};
+
 // Route pour créer une transaction
 router.post("/create", (req, res) => {
-  // Vérification si les champs nécessaires sont présents
-  if (
-    !checkBody(req.body, [
-      "date",
-      "invoice",
-      "amount",
-      "type",
-      "eventId",
-      "emitter",
-      "recipient",
-      "name",
-      "category",
-    ])
-  ) {
-    res.json({ result: false, error: "Champs manquants ou vides" });
-    return;
+  // On vérifie si les champs sont bien remplis
+  if (!checkBody(req.body, ["date", "invoice", "type", "emitter"])) {
+    return handleResponse(res, false, { error: "Champs manquants ou vides" });
   }
-  // Vérification si le montant a plus de deux décimales
-  if ((req.body.amount.toString().split(".")[1] || "").length > 2) {
-    res.json({
-      result: false,
-      error: "Amount should not have more than two decimal places",
-    });
-    return;
+// On vérifie si le type de transaction est valide
+  if (req.body.type !== "refound" && (req.body.amount.toString().split(".")[1] || "").length > 2) {
+    return handleResponse(res, false, { error: "Amount should not have more than two decimal places" });
   }
-
-  // Si tous les champs sont présents, créetion une nouvelle transaction
+// On crée une nouvelle transaction
   const transaction = new Transaction(req.body);
-
-  User.findById(req.body.emitter).then((user) => {
-    Event.findById(req.body.eventId).then((event) => {
-      // Vérification que le type de transaction pour mettre à jour le solde de l'utilisateur et le total de l'événement
-      switch (req.body.type) {
-        case "reload":
-        case "expense":
-          // Vérification si l'utilisateur a suffisamment de fonds
-          if (Number(event.totalSum || 0) - Number(req.body.amount) < 0) {
-            // Si l'utilisateur n'a pas assez de fonds, on renvoie une erreur
-            res.json({
-              result: false,
-              error: "Insufficient funds in event total",
-            });
-            // Arrêt de l'exécution de la fonction
-            return;
-          }
-          // Sinon, mise à jour du solde de l'utilisateur et du total de l'événement
-          user.balance = Number(user.balance) + Number(req.body.amount);
-          event.totalSum =
-            Number(event.totalSum || 0) - Number(req.body.amount);
-          // Arrêt l'exécution de la fonction
-          break;
-        // Si le type de transaction est un paiement ou un remboursement
-        case "payment":
-        case "refound":
-          // Vérification si l'utilisateur a suffisamment de fonds
-          if (Number(user.balance) - Number(req.body.amount) < 0) {
-            res.json({ result: false, error: "Insufficient balance" });
-            // Arrêt l'exécution de la fonction
-            return;
-          }
-          // Mise à jour le solde de l'utilisateur et le total de l'événement
-          user.balance = Number(user.balance) - Number(req.body.amount);
-          event.totalSum =
-            Number(event.totalSum || 0) + Number(req.body.amount);
-          break;
-      }
-
-      // Vérification si le solde de l'utilisateur et le total de l'événement sont des nombres
-      if (isNaN(user.balance) || isNaN(event.totalSum)) {
-        res.json({ result: false, error: "Invalid operation" });
-        return;
-      }
-
-      // Ajout de la transaction à l'utilisateur et à l'événement
-      user.save().then(() => {
-        event.save().then(() => {
-          // Sauvegarde de la transaction
-          transaction.save().then(() => {
-            res.json({ result: true, transaction });
-          });
-        });
+// On vérifie le type de transaction
+  switch (req.body.type) {
+    case "reload":
+      // On vérifie si l'utilisateur existe
+      User.findById(req.body.emitter).then((user) => {
+        if (!user) {
+          return handleResponse(res, false, { error: "User not found" });
+        }
+        // On ajoute le montant au solde de l'utilisateur
+        user.balance += Number(req.body.amount);
+        // On vérifie si le solde est négatif
+        if (user.balance < 0) {
+          return handleResponse(res, false, { error: "Invalid operation: balance cannot be negative" });
+          // On sauvegarde l'utilisateur
+        }
+        user.save().then(() => handleTransaction(transaction, res));
       });
-    });
-  });
+      //
+      break;
+  
+    default:
+      // On vérifie si l'événement existe
+      Event.findById(req.body.emitter).then((event) => {
+        if (!event) {
+          return handleResponse(res, false, { error: "Event not found" });
+        }
+        // On vérifie le type de transaction
+        switch (req.body.type) {
+          case "expense":
+            // On vérifie si le montant est supérieur au solde de l'événement
+            if (Number(event.totalSum || 0) - Number(req.body.amount) < 0) {
+              return handleResponse(res, false, { error: "Insufficient funds in event total" });
+            }
+            // On soustrait le montant au solde de l'événement
+            event.totalSum = Number((Number(event.totalSum || 0) - Number(req.body.amount)).toFixed(2));
+            break;
+            // On vérifie si l'utilisateur est un invité
+          case "payment":
+            // On vérifie si l'utilisateur est un invité
+            const isGuest = event.guests.some(guest => guest.userId.toString() === req.body.recipient);
+            // On renvoie une erreur si l'utilisateur n'est pas un invité
+            if (!isGuest) {
+              return handleResponse(res, false, { error: "User must be a guest in the event to make a payment" });
+            }
+            // On ajoute le montant au solde de l'événement
+            event.totalSum = Number((Number(event.totalSum || 0) + Number(req.body.amount)).toFixed(2));
+            break;
+            // On vérifie si le montant est supérieur au solde de l'événement
+          case "refound":
+            if (event.shareAmount === 0) {
+              return handleResponse(res, false, { error: "Invalid operation: share amount cannot be zero" });
+            }
+            // On vérifie si le montant est supérieur au solde de l'événement
+            const perShareAmount = Number(event.totalSum || 0) / event.shareAmount;
+            event.guests.forEach((guest) => {
+              // On vérifie si l'utilisateur est un invité
+              User.findById(guest.userId).then((user) => {
+                // On ajoute le montant au solde de l'utilisateur
+                if (user) {
+                  user.balance += perShareAmount * guest.share;
+                  user.save();
+                }
+              });
+            });
+            // On réinitialise le solde de l'événement
+            event.totalSum = 0;
+            break;
+        }
+        // On vérifie si le solde de l'événement est un nombre
+        if (isNaN(event.totalSum)) {
+          return handleResponse(res, false, { error: "Invalid operation" });
+        }
+        event.save().then(() => handleTransaction(transaction, res));
+      });
+  }
 });
+
+// // route get pour récuper les transactions d'un événement donné.
+// router.get("/event/:id", (req, res) => {
+//   Transaction.find({ eventId: req.params.id }).then((transactions) => {
+//     handleResponse(res, true, { transactions });
+//   });
+// }
+// );
+
+// // route pour récupérer les transaction émises ou reçu d'un user donné
+// router.get("/user/:id", (req, res) => {
+//   Transaction.find({ $or: [{ emitter: req.params.id }, { recipient: req.params.id }] }).then((transactions) => {
+//     handleResponse(res, true, { transactions });
+//   });
+// });
+
+// // route pour récupérer les payment sur un évenement donné
+// router.get("/event/:id/payment", (req, res) => {
+//   Transaction.find({ eventId: req.params.id, type: "payment" }).then((transactions) => {
+//     handleResponse(res, true, { transactions });
+//   });
+// });
+
+// // route pour récupérer les expense sur un évenement donné
+// router.get("/event/:id/expense", (req, res) => {
+//   Transaction.find({ eventId: req.params.id, type: "expense" }).then((transactions) => {
+//     handleResponse(res, true, { transactions });
+//   });
+// });
 
 module.exports = router;

@@ -26,7 +26,7 @@ function addUserToGuest(user, eventId, res) {
         event.guests.push({
           userId: user._id,
           email: user.email,
-          share: 0,
+          share: 1,
           hasPaid: false,
         });
         // On sauvegarde l'événement
