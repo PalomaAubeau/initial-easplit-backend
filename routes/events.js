@@ -50,4 +50,18 @@ router.delete("/event/:id", (req, res) => {
     });
 });
 
+// Route pour récupérer tous les événements
+router.get("/events", (req, res) => {
+  Event.find().then(events => {
+    res.json(events);
+  });
+});
+
+// Route pour récupérer un événement
+router.get("/event/:id", (req, res) => {
+  Event.findById(req.params.id).then(event => {
+    res.json(event);
+  });
+});
+
 module.exports = router;

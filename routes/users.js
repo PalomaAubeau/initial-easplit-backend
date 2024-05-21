@@ -4,6 +4,7 @@ var router = express.Router();
 require("../models/connection");
 const User = require("../models/users");
 const Event = require("../models/events");
+const Transaction = require("../models/transactions");
 
 const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
@@ -220,5 +221,16 @@ router.delete("/user/:id", (req, res) => {
         }
       });
   });
+
+  // Route pour récuprer le solde / balance du participant
+  router.get("/user/:id", (req, res) => {
+    User.findById(req.params.id).then(user => {
+      res.json(user.balance);
+    });
+  });
+
+  // Route pour mettre à jour le solde 
+
+  
 
 module.exports = router;
