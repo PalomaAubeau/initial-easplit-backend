@@ -66,7 +66,10 @@ function addUserToGuest(user, eventId, res) {
             }
           });
           // On renvoie une réponse positive si l'utilisateur a été ajouté et l'email envoyé
-          res.json({ result: true, message: "Utilisateur invité et mail envoyé" });
+          res.json({
+            result: true,
+            message: "Utilisateur invité et mail envoyé",
+          });
         });
       } else {
         // Si l'utilisateur est déjà invité
@@ -127,7 +130,7 @@ router.post("/signup", (req, res) => {
     (data) => {
       if (data !== null && data.password && data.firstName && data.lastName) {
         // Si un utilisateur est trouvé avec non-empty password, firstName, and lastName, on renvoie une erreur
-        res.json({ result: false, error: "User already exists" });
+        res.json({ result: false, error: "Le user existe déjà" });
       } else {
         // Si aucun utilisateur n'est trouvé, or the user has empty password, firstName, or lastName, on crée un nouvel utilisateur
         const hash = bcrypt.hashSync(req.body.password, 10);

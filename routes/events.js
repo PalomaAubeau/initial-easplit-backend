@@ -25,7 +25,7 @@ router.post("/createEvent", (req, res) => {
     ])
   ) {
     // Si un champ est manquant ou vide, on renvoie une erreur
-    res.json({ result: false, error: "Missing or empty fields" });
+    res.json({ result: false, error: "Champs manquants ou vides" });
     return;
   }
 
