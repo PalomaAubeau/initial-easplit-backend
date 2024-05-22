@@ -130,7 +130,7 @@ router.post("/signup", (req, res) => {
     (data) => {
       if (data !== null && data.password && data.firstName && data.lastName) {
         // Si un utilisateur est trouvé avec non-empty password, firstName, and lastName, on renvoie une erreur
-        res.json({ result: false, error: "User already exists" });
+        res.json({ result: false, error: "Le user existe déjà" });
       } else {
         // Si aucun utilisateur n'est trouvé, or the user has empty password, firstName, or lastName, on crée un nouvel utilisateur
         const hash = bcrypt.hashSync(req.body.password, 10);
@@ -148,30 +148,14 @@ router.post("/signup", (req, res) => {
         if (data !== null) {
           User.updateOne({ _id: data._id }, updatedUser).then(() => {
             // Une fois l'utilisateur mis à jour, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({
-              result: true,
-              data: {
-                token: updatedUser.token,
-                email: updatedUser.email,
-                firstName: updatedUser.firstName,
-                balance: updatedUser.balance,
-              },
-            });
+            res.json({ result: true, token: updatedUser.token });
           });
         } else {
           // On crée un nouvel utilisateur
           const newUser = new User(updatedUser);
           newUser.save().then((newDoc) => {
             // Une fois l'utilisateur créé, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({
-              result: true,
-              data: {
-                token: newDoc.token,
-                email: newDoc.email,
-                firstName: newDoc.firstName,
-                balance: newDoc.balance,
-              },
-            });
+            res.json({ result: true, token: newDoc.token });
           });
         }
       }

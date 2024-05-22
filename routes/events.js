@@ -25,7 +25,7 @@ router.post("/createEvent", (req, res) => {
     ])
   ) {
     // Si un champ est manquant ou vide, on renvoie une erreur
-    res.json({ result: false, error: "Missing or empty fields" });
+    res.json({ result: false, error: "Champs manquants ou vides" });
     return;
   }
 
@@ -34,7 +34,7 @@ router.post("/createEvent", (req, res) => {
     isNaN(new Date(req.body.eventDate)) ||
     isNaN(new Date(req.body.paymentDate))
   ) {
-    res.json({ result: false, error: "Invalid date" });
+    res.json({ result: false, error: "Date invalide" });
     return;
   }
   // On crée un nouvel événement
@@ -51,7 +51,7 @@ router.post("/createEvent", (req, res) => {
   });
   // On sauvegarde l'événement
   newEvent.save().then(() => {
-    res.json({ result: "Event successfully created" });
+    res.json({ result: "Event créé avec succès" });
   });
 });
 
@@ -61,10 +61,10 @@ router.delete("/event/:id", (req, res) => {
   Event.deleteOne({ _id: req.params.id }).then((result) => {
     // Si l'événement est supprimé, on renvoie un message de succès
     if (result.deletedCount > 0) {
-      res.json({ result: true, message: "Event deleted successfully" });
+      res.json({ result: true, message: "Event supprimé avec succès" });
     } else {
       // Sinon, on renvoie une erreur
-      res.json({ result: false, message: "Event not found" });
+      res.json({ result: false, message: "Event non trouvé" });
     }
   });
 });
@@ -93,7 +93,7 @@ router.get("/userevents/:token", (req, res) => {
     .then((user) => {
       // Si l'utilisateur n'est pas trouvé, on renvoie une erreur
       if (!user) {
-        res.json({ result: false, error: "User not found" });
+        res.json({ result: false, error: "User non trouvé" });
         // Arrêt de l'exécution de la fonction
         return;
       }
