@@ -32,7 +32,7 @@ router.post("/create", (req, res) => {
     (req.body.amount.toString().split(".")[1] || "").length > 2
   ) {
     return handleResponse(res, false, {
-      error: "Amount should not have more than two decimal places",
+      error: "le solde ne peut pas avoir plus de 2 décimales",
     });
   }
   // On crée une nouvelle transaction
@@ -43,14 +43,14 @@ router.post("/create", (req, res) => {
       // On vérifie si l'utilisateur existe
       User.findById(req.body.emitter).then((user) => {
         if (!user) {
-          return handleResponse(res, false, { error: "User not found" });
+          return handleResponse(res, false, { error: "User non trouvé" });
         }
         // On ajoute le montant au solde de l'utilisateur
         user.balance += Number(req.body.amount);
         // On vérifie si le solde est négatif
         if (user.balance < 0) {
           return handleResponse(res, false, {
-            error: "Invalid operation: balance cannot be negative",
+            error: "operation impossible: solde négatif",
           });
           // On sauvegarde l'utilisateur
         }
@@ -63,7 +63,7 @@ router.post("/create", (req, res) => {
       // On vérifie si l'événement existe
       Event.findById(req.body.emitter).then((event) => {
         if (!event) {
-          return handleResponse(res, false, { error: "Event not found" });
+          return handleResponse(res, false, { error: "Event non trouvé" });
         }
         // On vérifie le type de transaction
         switch (req.body.type) {
@@ -71,7 +71,7 @@ router.post("/create", (req, res) => {
             // On vérifie si le montant est supérieur au solde de l'événement
             if (Number(event.totalSum || 0) - Number(req.body.amount) < 0) {
               return handleResponse(res, false, {
-                error: "Insufficient funds in event total",
+                error: "Fonds insuffisants pour l'événement",
               });
             }
             // On soustrait le montant au solde de l'événement
@@ -88,7 +88,7 @@ router.post("/create", (req, res) => {
             // On renvoie une erreur si l'utilisateur n'est pas un invité
             if (!isGuest) {
               return handleResponse(res, false, {
-                error: "User must be a guest in the event to make a payment",
+                error: "User doit être un invité de l'événement",
               });
             }
             // On ajoute le montant au solde de l'événement
@@ -100,7 +100,7 @@ router.post("/create", (req, res) => {
           case "refound":
             if (event.shareAmount === 0) {
               return handleResponse(res, false, {
-                error: "Invalid operation: share amount cannot be zero",
+                error: "Opération impossible: aucun invité à rembourser",
               });
             }
             // On vérifie si le montant est supérieur au solde de l'événement
@@ -122,7 +122,7 @@ router.post("/create", (req, res) => {
         }
         // On vérifie si le solde de l'événement est un nombre
         if (isNaN(event.totalSum)) {
-          return handleResponse(res, false, { error: "Invalid operation" });
+          return handleResponse(res, false, { error: "Operation invalide" });
         }
         event.save().then(() => handleTransaction(transaction, res));
       });

@@ -66,11 +66,11 @@ function addUserToGuest(user, eventId, res) {
             }
           });
           // On renvoie une réponse positive si l'utilisateur a été ajouté et l'email envoyé
-          res.json({ result: true, message: "Guest added and email sent" });
+          res.json({ result: true, message: "Utilisateur invité et mail envoyé" });
         });
       } else {
         // Si l'utilisateur est déjà invité
-        res.json({ result: true, message: "Guest already exists" });
+        res.json({ result: true, message: "L'utilisateur existe déjà" });
       }
     } else {
       // Si l'événement n'est pas trouvé
@@ -213,9 +213,9 @@ router.post("/logout", (req, res) => {
 router.delete("/user/:id", (req, res) => {
   User.deleteOne({ _id: req.params.id }).then((result) => {
     if (result.deletedCount > 0) {
-      res.json({ result: true, message: "User deleted successfully" });
+      res.json({ result: true, message: "User supprimé avec succès" });
     } else {
-      res.json({ result: false, message: "User not found" });
+      res.json({ result: false, message: "User non trouvé" });
     }
   });
 });
