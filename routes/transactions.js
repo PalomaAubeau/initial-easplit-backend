@@ -79,7 +79,9 @@ router.post("/create", (req, res) => {
       // Vérifier si l'utilisateur existe
       User.findById(req.body.emitter).then((user) => {
         if (!user) {
-          return handleResponse(res, false, { error: "Utilisateur non trouvé" });
+          return handleResponse(res, false, {
+            error: "Utilisateur non trouvé",
+          });
         }
         // Ajouter le montant au solde de l'utilisateur
         user.balance += Number(req.body.amount);
@@ -98,7 +100,9 @@ router.post("/create", (req, res) => {
       // Vérifier si l'utilisateur existe
       User.findById(req.body.emitter).then((user) => {
         if (!user) {
-          return handleResponse(res, false, { error: "Utilisateur non trouvé" });
+          return handleResponse(res, false, {
+            error: "Utilisateur non trouvé",
+          });
         }
         // Vérifier si l'utilisateur a assez de solde
         if (user.balance < Number(req.body.amount)) {
@@ -119,7 +123,9 @@ router.post("/create", (req, res) => {
           // Vérifier si l'événement existe
           Event.findById(req.body.recipient).then((event) => {
             if (!event) {
-              return handleResponse(res, false, { error: "Événement non trouvé" });
+              return handleResponse(res, false, {
+                error: "Événement non trouvé",
+              });
             }
             handleTransaction(transaction, res, user, event);
           });
@@ -139,8 +145,7 @@ router.post("/create", (req, res) => {
           });
         }
         // Vérifier si le montant est supérieur au solde de l'événement
-        const perShareAmount =
-          Number(event.totalSum || 0) / event.shareAmount;
+        const perShareAmount = Number(event.totalSum || 0) / event.shareAmount;
         let promises = event.guests.map((guest) => {
           // Vérifier si l'utilisateur est un invité
           return User.findById(guest.userId).then((user) => {
@@ -171,7 +176,9 @@ router.post("/create", (req, res) => {
         }
         // Vérifier si l'événement a assez de totalSum
         if (event.totalSum < Number(req.body.amount)) {
-          return handleResponse(res, false, { error: "Fonds de l'événement insuffisants" });
+          return handleResponse(res, false, {
+            error: "Fonds de l'événement insuffisants",
+          });
         }
         // Déduire le montant du totalSum de l'événement
         event.totalSum -= Number(req.body.amount);
@@ -181,7 +188,9 @@ router.post("/create", (req, res) => {
       break;
 
     default:
-      return handleResponse(res, false, { error: "Type de transaction invalide" });
+      return handleResponse(res, false, {
+        error: "Type de transaction invalide",
+      });
   }
 });
 
