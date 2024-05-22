@@ -66,7 +66,10 @@ function addUserToGuest(user, eventId, res) {
             }
           });
           // On renvoie une réponse positive si l'utilisateur a été ajouté et l'email envoyé
-          res.json({ result: true, message: "Utilisateur invité et mail envoyé" });
+          res.json({
+            result: true,
+            message: "Utilisateur invité et mail envoyé",
+          });
         });
       } else {
         // Si l'utilisateur est déjà invité
