@@ -69,7 +69,7 @@ router.post("/create", (req, res) => {
   }
   // Vérification si le type de transaction est valide
   if (
-    req.body.type !== "refound" && 
+    req.body.type !== "refound" &&
     // Vérification si le montant est un nombre et s'il a plus de 2 décimales après la virgule
     (req.body.amount.toString().split(".")[1] || "").length > 2
   ) {
@@ -95,7 +95,7 @@ router.post("/create", (req, res) => {
         user.balance += Number(req.body.amount);
         // Vérification si le solde est négatif
         if (user.balance < 0) {
-        // Envoi d'une erreur si le solde est négatif
+          // Envoi d'une erreur si le solde est négatif
           return handleResponse(res, false, {
             error: "Opération impossible : solde négatif",
           });
