@@ -148,14 +148,24 @@ router.post("/signup", (req, res) => {
         if (data !== null) {
           User.updateOne({ _id: data._id }, updatedUser).then(() => {
             // Une fois l'utilisateur mis à jour, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({ result: true, token: updatedUser.token });
+            res.json({ result: true,
+              data:{
+              token: updatedUser.token,
+              email: updatedUser.email,
+              firstName: updatedUser.firstName,
+              balance: updatedUser.balance }});
           });
         } else {
           // On crée un nouvel utilisateur
           const newUser = new User(updatedUser);
           newUser.save().then((newDoc) => {
             // Une fois l'utilisateur créé, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({ result: true, token: newDoc.token });
+            res.json({ result: true,
+              data:{ 
+              token: newDoc.token,
+              email: newDoc.email,
+              firstName: newDoc.firstName,
+              balance: newDoc.balance  }});
           });
         }
       }
