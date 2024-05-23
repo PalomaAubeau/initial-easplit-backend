@@ -13,9 +13,9 @@ const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
 // Route pour créer un événement
-router.post("/create-event", (req, res) => {
-  //  Vérification des champs
-  const token = req.headers["authorization"];
+router.post("/create-event/:token", (req, res) => {
+  const token = req.params.token
+// Vérification de l'existence de l'utilisateur
   User.findOne({ token })
     .then((user) => {
       if (!user) {
@@ -55,16 +55,9 @@ router.post("/create-event", (req, res) => {
         shareAmount: 0,
         transactions: [],
       });
-      // Sauvegarde de l'événement
-      newEvent.save().then((savedEvent) => {
-        // Ajout de l'événement à l'utilisateur
-        User.updateOne({ _id: user._id }, { $push: { events: savedEvent._id } })
-          .then(() => {
-            res.json({ result: true, message: "Evenement créé avec succès" });
-          })
-          .catch((err) => {
-            res.json({ result: false, error: err.message });
-          });
+// Sauvegarde de l'événement
+      newEvent.save().then((data) => {
+        res.json({ result: true, message: "Evenement créé avec succès", data:data});
       });
     })
     .catch((err) => {
@@ -82,10 +75,11 @@ router.get("/event/:id", (req, res) => {
         res.json({ result: false, error: "Évènement non trouvé" });
         return;
       }
-      const { name, organizer, guests, transactions } = event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      const { name, organizer, guests, transactions, totalSum, shareAmount } =
+        event; // destruration de l'objet (clean-code) rajouter des champs si besoin
       res.json({
         result: true,
-        event: { name, organizer, guests, transactions }, // même clés que dans la destructuration
+        event: { name, organizer, guests, transactions, totalSum, shareAmount }, // même clés que dans la destructuration
       });
     });
 });
