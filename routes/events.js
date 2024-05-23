@@ -12,7 +12,6 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
-
 // Route pour créer un événement
 router.post("/create-event", (req, res) => {
   if (
@@ -45,12 +44,14 @@ router.post("/create-event", (req, res) => {
     eventDate: new Date(req.body.eventDate),
     paymentDate: new Date(req.body.paymentDate),
     description: req.body.description,
-    guests: [{ userId: organizer, email: req.body.email, share: 1, hasPaid: false }],
+    guests: [
+      { userId: organizer, email: req.body.email, share: 1, hasPaid: false },
+    ],
     totalSum: 0,
     shareAmount: 0,
     transactions: [],
   });
-// On sauvegarde l'événement
+  // On sauvegarde l'événement
   newEvent.save().then(() => {
     res.json({ result: true, message: "Event créé avec succès" });
   });
@@ -61,15 +62,15 @@ router.get("/event/:id", (req, res) => {
   // On cherche l'événement avec l'id donné
   Event.findById(req.params.id)
     // On récupère les informations de l'organisateur
-    .populate('organizer')
+    .populate("organizer")
     // On récupère les informations des invités
-    .populate('guests.userId')
+    .populate("guests.userId")
     // On récupère les transactions
-    .populate('transactions')
+    .populate("transactions")
     // On renvoie l'événement
     .then((event) => {
       if (!event) {
-        res.json({ result: false, error: "Event non" });
+        res.json({ result: false, error: "Event non trouvé" });
         return;
       }
       res.json(event);
