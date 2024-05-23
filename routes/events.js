@@ -14,86 +14,84 @@ const uid2 = require("uid2");
 
 // Route pour créer un événement
 router.post("/create-event", (req, res) => {
-  if (
-    // On vérifie que les champs ne sont pas vides
-    !checkBody(req.body, [
-      "name",
-      "eventDate",
-      "paymentDate",
-      "description",
-      "organizer",
-    ])
-  ) {
-    // Si un champ est vide, on renvoie une erreur
-    res.json({ result: false, error: "Champs manquants ou vides" });
-    return;
-  }
-
-  if (
-    isNaN(new Date(req.body.eventDate)) ||
-    isNaN(new Date(req.body.paymentDate))
-  ) {
-    res.json({ result: false, error: "Date invalide" });
-    return;
-  }
-  // On crée un nouvel événement
-  const organizer = req.body.organizer;
-  const newEvent = new Event({
-    organizer: organizer,
-    name: req.body.name,
-    eventDate: new Date(req.body.eventDate),
-    paymentDate: new Date(req.body.paymentDate),
-    description: req.body.description,
-    guests: [
-      { userId: organizer, email: req.body.email, share: 1, hasPaid: false },
-    ],
-    totalSum: 0,
-    shareAmount: 0,
-    transactions: [],
-  });
-  // On sauvegarde l'événement
-  newEvent.save().then(() => {
-    res.json({ result: true, message: "Event créé avec succès" });
-  });
-});
-
-// Route pour récupérer un événement
-router.get("/event/:id", (req, res) => {
-  // On cherche l'événement avec l'id donné
-  Event.findById(req.params.id)
-    // On récupère les informations de l'organisateur
-    .populate("organizer")
-    // On récupère les informations des invités
-    .populate("guests.userId")
-    // On récupère les transactions
-    .populate("transactions")
-    // On renvoie l'événement
-    .then((event) => {
-      if (!event) {
-        res.json({ result: false, error: "Event non trouvé" });
-        return;
-      }
-      res.json(event);
-    });
-});
-
-// Route pour récupérer les événements de l'utilisateur connécté
-router.get("/userevents/:token", (req, res) => {
-  // On cherche l'utilisateur avec le token donné
-  User.findOne({ token: req.params.token })
-    // On récupère les événements de l'utilisateur
-    .populate("events")
-    // On renvoie les événements
-    .then((user) => {
-      // Si l'utilisateur n'est pas trouvé, on renvoie une erreur
+  const token = req.headers['authorization'];
+// Vérification de l'existence de l'utilisateur
+  User.findOne({ token })
+    .then(user => {
       if (!user) {
-        res.json({ result: false, error: "User non trouvé" });
-        // Arrêt de l'exécution de la fonction
+        res.json({ result: false, error: "Utilisateur non trouvé" });
         return;
       }
-      // Sinon, on renvoie les événements de l'utilisateur
-      res.json({ result: true, events: user.events });
+// Vérification des champs
+      if (
+        !checkBody(req.body, [
+          "name",
+          "eventDate",
+          "paymentDate",
+          "description",
+        ])
+      ) {
+        res.json({ result: false, error: "Champs manquants ou vides" });
+        return;
+      }
+// Vérification des dates
+      if (
+        isNaN(new Date(req.body.eventDate)) ||
+        isNaN(new Date(req.body.paymentDate))
+      ) {
+        res.json({ result: false, error: "Date invalide" });
+        return;
+      }
+// Création de l'événement
+      const newEvent = new Event({
+        organizer: user._id,
+        name: req.body.name,
+        eventDate: new Date(req.body.eventDate),
+        paymentDate: new Date(req.body.paymentDate),
+        description: req.body.description,
+        guests: [{ userId: user._id, email: user.email, share: 1, hasPaid: false }],
+        totalSum: 0,
+        shareAmount: 0,
+        transactions: [],
+      });
+// Sauvegarde de l'événement
+      newEvent.save().then(() => {
+        res.json({ result: true, message: "Evenement créé avec succès" });
+      });
+    })
+    .catch(err => {
+      res.json({ result: false, error: err.message });
     });
 });
+
+
+// router.get("/event/:id", (req, res) => {
+//   Event.findById(req.params.id)
+//     .populate("organizer")
+//     .populate("guests.userId")
+//     .populate("transactions")
+//     .then((event) => {
+//       if (!event) {
+//         res.json({ result: false, error: "Event not found" });
+//         return;
+//       }
+//       res.json(event);
+//     });
+// });
+
+
+// router.get("/userevents", (req, res) => {
+//   const token = req.headers['authorization'];
+
+//   User.findOne({ token })
+//     .populate("events")
+//     .then((user) => {
+//       if (!user) {
+//         res.json({ result: false, error: "User not found" });
+//         return;
+//       }
+//       res.json({ result: true, events: user.events });
+//     });
+// });
 
 module.exports = router;
