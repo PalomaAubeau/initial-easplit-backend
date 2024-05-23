@@ -14,35 +14,34 @@ const uid2 = require("uid2");
 
 // Route pour créer un événement
 router.post("/create-event", (req, res) => {
+  //  Vérification des champs
   const token = req.headers['authorization'];
-// Vérification de l'existence de l'utilisateur
   User.findOne({ token })
     .then(user => {
       if (!user) {
         res.json({ result: false, error: "Utilisateur non trouvé" });
         return;
       }
-// Vérification des champs
       if (
         !checkBody(req.body, [
           "name",
           "eventDate",
           "paymentDate",
-          "description",
+          "description"
         ])
       ) {
         res.json({ result: false, error: "Champs manquants ou vides" });
         return;
       }
-// Vérification des dates
+      // Vérification des dates
       if (
         isNaN(new Date(req.body.eventDate)) ||
         isNaN(new Date(req.body.paymentDate))
       ) {
-        res.json({ result: false, error: "Date invalide" });
+        res.json({ result: false, error: "Date invalidepull" });
         return;
       }
-// Création de l'événement
+      // Création de l'événement
       const newEvent = new Event({
         organizer: user._id,
         name: req.body.name,
@@ -54,9 +53,16 @@ router.post("/create-event", (req, res) => {
         shareAmount: 0,
         transactions: [],
       });
-// Sauvegarde de l'événement
-      newEvent.save().then(() => {
-        res.json({ result: true, message: "Evenement créé avec succès" });
+      // Sauvegarde de l'événement
+      newEvent.save().then((savedEvent) => {
+        // Ajout de l'événement à l'utilisateur
+        User.updateOne({ _id: user._id }, { $push: { events: savedEvent._id } })
+          .then(() => {
+            res.json({ result: true, message: "Evenement créé avec succès" });
+          })
+          .catch(err => {
+            res.json({ result: false, error: err.message });
+          });
       });
     })
     .catch(err => {
