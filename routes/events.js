@@ -13,78 +13,94 @@ const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
 // Route pour créer un événement
-router.post("/createEvent", (req, res) => {
-  if (
-    // On vérifie si les champs sont bien remplis
-    !checkBody(req.body, [
-      "organizer",
-      "name",
-      "eventDate",
-      "paymentDate",
-      "description",
-    ])
-  ) {
-    // Si un champ est manquant ou vide, on renvoie une erreur
-    res.json({ result: false, error: "Champs manquants ou vides" });
-    return;
-  }
-
-  // On vérifie si les dates sont valides
-  if (
-    isNaN(new Date(req.body.eventDate)) ||
-    isNaN(new Date(req.body.paymentDate))
-  ) {
-    res.json({ result: false, error: "Date invalide" });
-    return;
-  }
-  // On crée un nouvel événement
-  const newEvent = new Event({
-    organizer: req.body.organizer,
-    name: req.body.name,
-    eventDate: new Date(req.body.eventDate),
-    paymentDate: new Date(req.body.paymentDate),
-    description: req.body.description,
-    guests: req.body.guests,
-    totalSum: 0,
-    shareAmount: 0,
-    transactions: [],
-  });
-  // On sauvegarde l'événement
-  newEvent.save().then(() => {
-    res.json({ result: "Event créé avec succès" });
-  });
+router.post("/create-event", (req, res) => {
+  //  Vérification des champs
+  const token = req.headers["authorization"];
+  User.findOne({ token })
+    .then((user) => {
+      if (!user) {
+        res.json({ result: false, error: "Utilisateur non trouvé" });
+        return;
+      }
+      if (
+        !checkBody(req.body, [
+          "name",
+          "eventDate",
+          "paymentDate",
+          "description",
+        ])
+      ) {
+        res.json({ result: false, error: "Champs manquants ou vides" });
+        return;
+      }
+      // Vérification des dates
+      if (
+        isNaN(new Date(req.body.eventDate)) ||
+        isNaN(new Date(req.body.paymentDate))
+      ) {
+        res.json({ result: false, error: "Date invalidepull" });
+        return;
+      }
+      // Création de l'événement
+      const newEvent = new Event({
+        organizer: user._id,
+        name: req.body.name,
+        eventDate: new Date(req.body.eventDate),
+        paymentDate: new Date(req.body.paymentDate),
+        description: req.body.description,
+        guests: [
+          { userId: user._id, email: user.email, share: 1, hasPaid: false },
+        ],
+        totalSum: 0,
+        shareAmount: 0,
+        transactions: [],
+      });
+      // Sauvegarde de l'événement
+      newEvent.save().then((savedEvent) => {
+        // Ajout de l'événement à l'utilisateur
+        User.updateOne({ _id: user._id }, { $push: { events: savedEvent._id } })
+          .then(() => {
+            res.json({ result: true, message: "Evenement créé avec succès" });
+          })
+          .catch((err) => {
+            res.json({ result: false, error: err.message });
+          });
+      });
+    })
+    .catch((err) => {
+      res.json({ result: false, error: err.message });
+    });
 });
 
-// Route pour supprimer un événement
-router.delete("/event/:id", (req, res) => {
-  // On supprime l'événement avec l'id donné
-  Event.deleteOne({ _id: req.params.id }).then((result) => {
-    // Si l'événement est supprimé, on renvoie un message de succès
-    if (result.deletedCount > 0) {
-      res.json({ result: true, message: "Event supprimé avec succès" });
-    } else {
-      // Sinon, on renvoie une erreur
-      res.json({ result: false, message: "Event non trouvé" });
-    }
-  });
-});
+// router.get("/event/:id", (req, res) => {
+//   Event.findById(req.params.id)
+//     .populate("organizer")
+//     .populate("guests.userId")
+//     .populate("transactions")
+//     .then((event) => {
+//       if (!event) {
+//         res.json({ result: false, error: "Event not found" });
+//         return;
+//       }
+//       res.json(event);
+//     });
+// });
 
-// Route pour récupérer tous les événements
-router.get("/events", (req, res) => {
-  Event.find().then((events) => {
-    res.json(events);
-  });
-});
+// router.get("/userevents", (req, res) => {
+//   const token = req.headers['authorization'];
 
-// Route pour récupérer un événement
-router.get("/event/:id", (req, res) => {
-  Event.findById(req.params.id).then((event) => {
-    res.json(event);
-  });
-});
+//   User.findOne({ token })
+//     .populate("events")
+//     .then((user) => {
+//       if (!user) {
+//         res.json({ result: false, error: "User not found" });
+//         return;
+//       }
+//       res.json({ result: true, events: user.events });
+//     });
+// });
 
-// Route pour récupérer les événements de l'utilisateur connécté
-router.get("/userevents/:token", (req, res) => {
+router.get("/user-events/:token", (req, res) => {
   // On cherche l'utilisateur avec le token donné
   User.findOne({ token: req.params.token })
     // On récupère les événements de l'utilisateur

@@ -148,24 +148,30 @@ router.post("/signup", (req, res) => {
         if (data !== null) {
           User.updateOne({ _id: data._id }, updatedUser).then(() => {
             // Une fois l'utilisateur mis à jour, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({ result: true,
-              data:{
-              token: updatedUser.token,
-              email: updatedUser.email,
-              firstName: updatedUser.firstName,
-              balance: updatedUser.balance }});
+            res.json({
+              result: true,
+              data: {
+                token: updatedUser.token,
+                email: updatedUser.email,
+                firstName: updatedUser.firstName,
+                balance: updatedUser.balance,
+              },
+            });
           });
         } else {
           // On crée un nouvel utilisateur
           const newUser = new User(updatedUser);
           newUser.save().then((newDoc) => {
             // Une fois l'utilisateur créé, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({ result: true,
-              data:{ 
-              token: newDoc.token,
-              email: newDoc.email,
-              firstName: newDoc.firstName,
-              balance: newDoc.balance  }});
+            res.json({
+              result: true,
+              data: {
+                token: newDoc.token,
+                email: newDoc.email,
+                firstName: newDoc.firstName,
+                balance: newDoc.balance,
+              },
+            });
           });
         }
       }
@@ -239,6 +245,28 @@ router.get("/user/:id", (req, res) => {
   User.findById(req.params.id).then((user) => {
     res.json(user.balance);
   });
+});
+// récuperer les transactions du user
+router.get("/userTransactions/:userId", async (req, res) => {
+  try {
+    const token = req.headers["authorization"];
+    const user = await User.findOne({ token });
+    if (!user) {
+      return res.json({ response: false, error: "Utilisateur non trouvé" });
+    }
+    const transactions = await Transaction.find({
+      $or: [{ emitter: user._id }, { recipient: user._id }],
+    })
+      .populate("emitter", "username")
+      .populate("recipient", "name")
+      .populate("eventId");
+    if (!transactions) {
+      return res.json({ response: false, error: "Transactions non trouvées" });
+    }
+    res.json({ response: true, transactions: transactions });
+  } catch (error) {
+    res.json({ response: false, error: error.message });
+  }
 });
 
 // // Route pour mettre à jour le solde du participant
