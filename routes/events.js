@@ -105,19 +105,13 @@ router.get("/event/:id", (req, res) => {
 // });
 
 router.get("/user-events/:token", (req, res) => {
-  // On cherche l'utilisateur avec le token donné
   User.findOne({ token: req.params.token })
-    // On récupère les événements de l'utilisateur
     .populate("events")
-    // On renvoie les événements
     .then((user) => {
-      // Si l'utilisateur n'est pas trouvé, on renvoie une erreur
       if (!user) {
         res.json({ result: false, error: "User non trouvé" });
-        // Arrêt de l'exécution de la fonction
         return;
       }
-      // Sinon, on renvoie les événements de l'utilisateur
       res.json({ result: true, events: user.events });
     });
 });
