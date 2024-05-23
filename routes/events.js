@@ -12,24 +12,24 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
+
 // Route pour créer un événement
-router.post("/createEvent", (req, res) => {
+router.post("/create-event", (req, res) => {
   if (
-    // On vérifie si les champs sont bien remplis
+    // On vérifie que les champs ne sont pas vides
     !checkBody(req.body, [
-      "organizer",
       "name",
       "eventDate",
       "paymentDate",
       "description",
+      "organizer",
     ])
   ) {
-    // Si un champ est manquant ou vide, on renvoie une erreur
+    // Si un champ est vide, on renvoie une erreur
     res.json({ result: false, error: "Champs manquants ou vides" });
     return;
   }
 
-  // On vérifie si les dates sont valides
   if (
     isNaN(new Date(req.body.eventDate)) ||
     isNaN(new Date(req.body.paymentDate))
@@ -38,49 +38,42 @@ router.post("/createEvent", (req, res) => {
     return;
   }
   // On crée un nouvel événement
+  const organizer = req.body.organizer;
   const newEvent = new Event({
-    organizer: req.body.organizer,
+    organizer: organizer,
     name: req.body.name,
     eventDate: new Date(req.body.eventDate),
     paymentDate: new Date(req.body.paymentDate),
     description: req.body.description,
-    guests: req.body.guests,
+    guests: [{ userId: organizer, email: req.body.email, share: 1, hasPaid: false }],
     totalSum: 0,
     shareAmount: 0,
     transactions: [],
   });
-  // On sauvegarde l'événement
+// On sauvegarde l'événement
   newEvent.save().then(() => {
-    res.json({ result: "Event créé avec succès" });
-  });
-});
-
-// Route pour supprimer un événement
-router.delete("/event/:id", (req, res) => {
-  // On supprime l'événement avec l'id donné
-  Event.deleteOne({ _id: req.params.id }).then((result) => {
-    // Si l'événement est supprimé, on renvoie un message de succès
-    if (result.deletedCount > 0) {
-      res.json({ result: true, message: "Event supprimé avec succès" });
-    } else {
-      // Sinon, on renvoie une erreur
-      res.json({ result: false, message: "Event non trouvé" });
-    }
-  });
-});
-
-// Route pour récupérer tous les événements
-router.get("/events", (req, res) => {
-  Event.find().then((events) => {
-    res.json(events);
+    res.json({ result: true, message: "Event créé avec succès" });
   });
 });
 
 // Route pour récupérer un événement
 router.get("/event/:id", (req, res) => {
-  Event.findById(req.params.id).then((event) => {
-    res.json(event);
-  });
+  // On cherche l'événement avec l'id donné
+  Event.findById(req.params.id)
+    // On récupère les informations de l'organisateur
+    .populate('organizer')
+    // On récupère les informations des invités
+    .populate('guests.userId')
+    // On récupère les transactions
+    .populate('transactions')
+    // On renvoie l'événement
+    .then((event) => {
+      if (!event) {
+        res.json({ result: false, error: "Event non" });
+        return;
+      }
+      res.json(event);
+    });
 });
 
 // Route pour récupérer les événements de l'utilisateur connécté
