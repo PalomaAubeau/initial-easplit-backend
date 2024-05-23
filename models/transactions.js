@@ -6,7 +6,7 @@ const transactionSchema = mongoose.Schema({
   invoice: String,
   type: {
     type: String,
-    enum: ["refound", "payment", "reload", "expense"],
+    enum: ["refund", "payment", "reload", "expense"],
   },
   eventId: { type: mongoose.Schema.Types.ObjectId, ref: "events" },
   emitter: String,

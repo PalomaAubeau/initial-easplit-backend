@@ -82,7 +82,7 @@ router.post("/create/payment", (req, res) => {
 });
 
 // Route pour créer un remboursement
-router.post("/create/refound", (req, res) => {
+router.post("/create/refund", (req, res) => {
   // Vérification du corps de la requête
   if (!checkBody(req.body, ["emitter", "eventId"])) {
     return res.status(400).json({ error: "Corps invalide" });
