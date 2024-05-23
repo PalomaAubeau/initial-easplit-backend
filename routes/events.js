@@ -82,10 +82,11 @@ router.get("/event/:id", (req, res) => {
         res.json({ result: false, error: "Évènement non trouvé" });
         return;
       }
-      const { name, organizer, guests, transactions } = event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      const { name, organizer, guests, transactions, totalSum, shareAmount } =
+        event; // destruration de l'objet (clean-code) rajouter des champs si besoin
       res.json({
         result: true,
-        event: { name, organizer, guests, transactions }, // même clés que dans la destructuration
+        event: { name, organizer, guests, transactions, totalSum, shareAmount }, // même clés que dans la destructuration
       });
     });
 });
