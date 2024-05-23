@@ -64,7 +64,7 @@ const handleTransaction = (transaction, res, user = null, event = null) => {
 // Route pour créer une transaction
 router.post("/create", (req, res) => {
   // Vérification si les champs sont remplis
-  if (!checkBody(req.body, ["date", "type", "emitter"])) {
+  if (!checkBody(req.body, ["date", "type", "emitter", "name"])) {
     return handleResponse(res, false, { error: "Champs manquants ou vides" });
   }
   // Vérification si le type de transaction est valide
@@ -212,5 +212,30 @@ router.post("/create", (req, res) => {
       });
   }
 });
+
+router.get('/userTransactions/:userId', async (req, res) => {
+  try {
+  const user = await User.findById(req.params.userId).populate('transactions');
+  if (!user) {
+  return res.json({ response: false, error: 'Utilisateur non trouvé' });
+  }
+  res.json({ response: true, transactions: user.transactions });
+  } catch (error) {
+  res.json({ response: false, error: error.message });
+  }
+  });
+  
+  // Route pour récupérer les détails d'une transaction spécifique
+  router.get('/:transactionId', async (req, res) => {
+  try {
+  const transaction = await Transaction.findById(req.params.transactionId).populate('eventId');
+  if (!transaction) {
+  return res.json({ response: false, error: 'Transaction non trouvée' });
+  }
+  res.json({ response: true, transaction });
+  } catch (error) {
+  res.json({ response: false, error: error.message });
+  }
+  });
 
 module.exports = router;
