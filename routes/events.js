@@ -72,21 +72,25 @@ router.post("/create-event", (req, res) => {
     });
 });
 
-// router.get("/event/:id", (req, res) => {
-//   Event.findById(req.params.id)
-//     .populate("organizer")
-//     .populate("guests.userId")
-//     .populate("transactions")
-//     .then((event) => {
-//       if (!event) {
-//         res.json({ result: false, error: "Event not found" });
-//         return;
-//       }
-//       res.json(event);
-//     });
-// });
+router.get("/event/:id", (req, res) => {
+  Event.findById(req.params.id)
+    .populate("organizer")
+    .populate("guests.userId")
+    .populate("transactions")
+    .then((event) => {
+      if (!event) {
+        res.json({ result: false, error: "Évènement non trouvé" });
+        return;
+      }
+      const { name, organizer, guests, transactions } = event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      res.json({
+        result: true,
+        event: { name, organizer, guests, transactions }, // même clés que dans la destructuration
+      });
+    });
+});
 
-// router.get("/userevents", (req, res) => {
+// router.get("/user-events", (req, res) => {
 //   const token = req.headers['authorization'];
 
 //   User.findOne({ token })
@@ -101,19 +105,13 @@ router.post("/create-event", (req, res) => {
 // });
 
 router.get("/user-events/:token", (req, res) => {
-  // On cherche l'utilisateur avec le token donné
   User.findOne({ token: req.params.token })
-    // On récupère les événements de l'utilisateur
     .populate("events")
-    // On renvoie les événements
     .then((user) => {
-      // Si l'utilisateur n'est pas trouvé, on renvoie une erreur
       if (!user) {
         res.json({ result: false, error: "User non trouvé" });
-        // Arrêt de l'exécution de la fonction
         return;
       }
-      // Sinon, on renvoie les événements de l'utilisateur
       res.json({ result: true, events: user.events });
     });
 });
