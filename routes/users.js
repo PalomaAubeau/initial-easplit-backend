@@ -285,7 +285,7 @@ router.get("/userTransactions/:userId", async (req, res) => {
 //       // On déduit si la transaction est un paiement ou une dépense et que l'utilisateur est l'émetteur
 //       user.balance -= transaction.amount;
 //     } else if (
-//       ["refound", "reload"].includes(transaction.type) &&
+//       ["refund", "reload"].includes(transaction.type) &&
 //       transaction.recipient === user._id.toString()
 //     ) {
 //       // On ajoute si la transaction est un remboursement ou un rechargement et que l'utilisateur est le destinataire
