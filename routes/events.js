@@ -13,8 +13,8 @@ const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
 // Route pour créer un événement
-router.post("/create-event", (req, res) => {
-  const token = req.headers['authorization'];
+router.post("/create-event/:token", (req, res) => {
+  const token = req.params.token
 // Vérification de l'existence de l'utilisateur
   User.findOne({ token })
     .then(user => {
@@ -55,8 +55,8 @@ router.post("/create-event", (req, res) => {
         transactions: [],
       });
 // Sauvegarde de l'événement
-      newEvent.save().then(() => {
-        res.json({ result: true, message: "Evenement créé avec succès" });
+      newEvent.save().then((data) => {
+        res.json({ result: true, message: "Evenement créé avec succès", data:data});
       });
     })
     .catch(err => {
