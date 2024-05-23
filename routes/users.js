@@ -170,6 +170,7 @@ router.post("/signup", (req, res) => {
                 email: newDoc.email,
                 firstName: newDoc.firstName,
                 balance: newDoc.balance,
+                userId: newDoc._id,
               },
             });
           });
@@ -202,6 +203,7 @@ router.post("/login", (req, res) => {
             email: data.email,
             firstName: data.firstName,
             balance: data.balance,
+            userId: data._id,
           });
         });
         // Si l'utilisateur n'est pas trouvé ou que le mot de passe ne correspond pas
