@@ -180,7 +180,7 @@ router.post("/signup", (req, res) => {
   );
 });
 // route for login
-router.post("/login", (req, res) => {
+router.post("/signin", (req, res) => {
   // Vérification de la présence des champs obligatoires avec le module checkBody
   if (!checkBody(req.body, ["email", "password"])) {
     // Si un champ est manquant ou vide, on renvoie une erreur
