@@ -72,21 +72,25 @@ router.post("/create-event", (req, res) => {
     });
 });
 
-// router.get("/event/:id", (req, res) => {
-//   Event.findById(req.params.id)
-//     .populate("organizer")
-//     .populate("guests.userId")
-//     .populate("transactions")
-//     .then((event) => {
-//       if (!event) {
-//         res.json({ result: false, error: "Event not found" });
-//         return;
-//       }
-//       res.json(event);
-//     });
-// });
+router.get("/event/:id", (req, res) => {
+  Event.findById(req.params.id)
+    .populate("organizer")
+    .populate("guests.userId")
+    .populate("transactions")
+    .then((event) => {
+      if (!event) {
+        res.json({ result: false, error: "Évènement non trouvé" });
+        return;
+      }
+      const { name, organizer, guests, transactions } = event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      res.json({
+        result: true,
+        event: { name, organizer, guests, transactions }, // même clés que dans la destructuration
+      });
+    });
+});
 
-// router.get("/userevents", (req, res) => {
+// router.get("/user-events", (req, res) => {
 //   const token = req.headers['authorization'];
 
 //   User.findOne({ token })
