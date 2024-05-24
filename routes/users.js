@@ -298,4 +298,7 @@ router.get("/userTransactions/:userId", async (req, res) => {
 //   });
 // });
 
+//export de la fonction addUserToGuest
+module.exports = { addUserToGuest };
+
 module.exports = router;
