@@ -12,7 +12,7 @@ const { checkBody } = require("../modules/checkBody");
 // Route pour le rechargement du solde d'un utilisateur
 router.post("/create/reload", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter", "recipient"])) {
+  if (!checkBody(req.body, ["emitter", "recipient","type", "amount"])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
@@ -42,7 +42,7 @@ router.post("/create/reload", (req, res) => {
 // Route pour créer un paiement
 router.post("/create/payment", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter", "name", "amount", "recipient"])) {
+  if (!checkBody(req.body, ["emitter", "name", "amount", "recipient", 'type'])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
@@ -84,7 +84,7 @@ router.post("/create/payment", (req, res) => {
 // Route pour créer un remboursement
 router.post("/create/refund", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter", "eventId"])) {
+  if (!checkBody(req.body, ["emitter","type"])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
@@ -138,7 +138,7 @@ router.post("/create/refund", (req, res) => {
 // Route pour créer une dépense
 router.post("/create/expense", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter", "amount"])) {
+  if (!checkBody(req.body, ["emitter", "amount", "type"])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
