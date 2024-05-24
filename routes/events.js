@@ -12,9 +12,27 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
+
+// const updateUserWithEvent = async (email, eventId) => {
+//   try {
+//     // Recherche de l'utilisateur par son ID
+//     const user = await User.findOne(email);
+//     // Si l'utilisateur est trouvé, mettre à jour son champ events avec l'ID de l'événement
+//     if (user) {
+//       user.events.push(eventId);
+//       await user.save();
+//     } else {
+//       console.log(`Utilisateur avec l'email ${email} non trouvé`);
+//     }
+//   } catch (error) {
+//     console.error('Erreur lors de la mise à jour de l\'utilisateur avec l\'événement :', error);
+//   }
+// };
+
+
 // Route pour créer un événement
 router.post("/create-event/:token", (req, res) => {
-  const token = req.params.token
+  const token = req.params.token;
 // Vérification de l'existence de l'utilisateur
   User.findOne({ token })
     .then((user) => {
@@ -51,13 +69,13 @@ router.post("/create-event/:token", (req, res) => {
         guests: [
           { userId: user._id, email: user.email, share: 1, hasPaid: false },
         ],
-        totalSum: 0,
-        shareAmount: 0,
+        totalSum: req.body.totalSum || null,
+        shareAmount: req.body.shareAmount || null,
         transactions: [],
       });
 // Sauvegarde de l'événement
       newEvent.save().then((data) => {
-        res.json({ result: true, message: "Evenement créé avec succès", data:data});
+        res.json({ result: true, message: "Evenement créé avec succès", data: data });
       });
     })
     .catch((err) => {
