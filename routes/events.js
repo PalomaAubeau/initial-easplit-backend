@@ -12,7 +12,7 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
-const { addUserToGuest } = require('./users'); 
+const { addUserToGuest } = require("./users");
 
 router.post("/create-event/:token", async (req, res) => {
   const token = req.params.token;
@@ -29,10 +29,10 @@ router.post("/create-event/:token", async (req, res) => {
           "paymentDate",
           "description",
           "guests",
-          "totalSum", 
+          "totalSum",
         ])
       ) {
-        console.log('Request body:', req.body);
+        console.log("Request body:", req.body);
         res.json({ result: false, error: "Champs manquants ou vides" });
         return;
       }
@@ -43,27 +43,35 @@ router.post("/create-event/:token", async (req, res) => {
         res.json({ result: false, error: "Date invalide" });
         return;
       }
-      // const guests = [
-      //   console.log(user),
-      //   { userId: user._id, email: user.email, hasPaid: false },
-      // ];
-      let shareAmount = 1; 
+      let organizerShare = 1;
+      const guests = [
+        {
+          userId: user._id,
+          email: user.email,
+          share: organizerShare,
+          hasPaid: false,
+        },
+      ];
+      let shareAmount = 0;
       for (let participant of req.body.guests) {
-       
-        if (participant.email !== user.email) {
-          let participantUser = await User.findOne({ email: participant.email });
+        let participantShare = Number(participant.parts);
+        if (isNaN(participantShare)) {
+          res.json({
+            result: false,
+            error: "Invalid share amount for participant",
+          });
+          return;
+        }
+        if (participant.email === user.email) {
+          organizerShare = participantShare;
+          guests[0].share = organizerShare;
+        } else {
+          let participantUser = await User.findOne({
+            email: participant.email,
+          });
           if (!participantUser) {
-            const newUser = new User({
-              email: participant.email,
-              events: [],
-            });
-            await newUser.save();
-            participantUser = newUser;
-          }
-          const participantShare = Number(participant.parts);
-          if (isNaN(participantShare)) {
-            res.json({ result: false, error: "Invalid share amount for participant" });
-            return;
+            participantUser = new User({ email: participant.email });
+            await participantUser.save();
           }
           guests.push({
             userId: participantUser._id,
@@ -71,8 +79,8 @@ router.post("/create-event/:token", async (req, res) => {
             share: participantShare,
             hasPaid: false,
           });
-          shareAmount += participantShare; 
         }
+        shareAmount += participantShare;
       }
       const newEvent = new Event({
         eventUniqueId: uid2(32),
@@ -83,13 +91,12 @@ router.post("/create-event/:token", async (req, res) => {
         description: req.body.description,
         guests: guests,
         totalSum: req.body.totalSum,
-        shareAmount: shareAmount, 
+        shareAmount: shareAmount,
         transactions: [],
       });
 
       newEvent.save().then(async (data) => {
         for (let guest of guests) {
-        
           if (guest.userId.toString() !== user._id.toString()) {
             let guestUser = await User.findOne({ _id: guest.userId });
             if (guestUser) {
@@ -98,32 +105,22 @@ router.post("/create-event/:token", async (req, res) => {
             }
           }
         }
-    
+
         let organizerUser = await User.findOne({ _id: newEvent.organizer });
         if (organizerUser) {
           organizerUser.events.push(data._id);
           await organizerUser.save();
         }
 
-        res.json({ result: true, message: "Evenement créé avec succès", data: data });
+        res.json({
+          result: true,
+          message: "Evenement créé avec succès",
+          data: data,
+        });
       });
     })
     .catch((err) => {
       res.json({ result: false, error: err.message });
-    });
-});
-
-router.get("/user-events", (req, res) => {
-  const token = req.headers['authorization'];
-
-  User.findOne({ token })
-    .populate("events")
-    .then((user) => {
-      if (!user) {
-        res.json({ result: false, error: "User not found" });
-        return;
-      }
-      res.json({ result: true, events: user.events });
     });
 });
 
@@ -138,5 +135,52 @@ router.get("/user-events/:token", (req, res) => {
       res.json({ result: true, events: user.events });
     });
 });
+
+//Route utilisée dans le screen EventScreen
+router.get("/event/:id", (req, res) => {
+  Event.findById(req.params.id)
+    .populate("organizer")
+    .populate("guests.userId")
+    .populate("transactions")
+    .then((event) => {
+      if (!event) {
+        res.json({ result: false, error: "Évènement non trouvé" });
+        return;
+      }
+      const { name, organizer, guests, transactions, totalSum, shareAmount } =
+        event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      res.json({
+        result: true,
+        event: { name, organizer, guests, transactions, totalSum, shareAmount }, // même clés que dans la destructuration
+      });
+    });
+});
+
+//Route utilisée dans le screen EventsListScreen
+router.get("/user-events/:token", (req, res) => {
+  User.findOne({ token: req.params.token })
+    .populate("events")
+    .then((user) => {
+      if (!user) {
+        res.json({ result: false, error: "User non trouvé" });
+        return;
+      }
+      res.json({ result: true, events: user.events });
+    });
+});
+
+// router.get("/user-events", (req, res) => {
+//   const token = req.headers['authorization'];
+
+//   User.findOne({ token })
+//     .populate("events")
+//     .then((user) => {
+//       if (!user) {
+//         res.json({ result: false, error: "User not found" });
+//         return;
+//       }
+//       res.json({ result: true, events: user.events });
+//     });
+// });
 
 module.exports = router;
