@@ -18,7 +18,6 @@ const eventSchema = mongoose.Schema({
   transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: "transactions" }],
   totalSum: Number,
   shareAmount: Number,
-  //  eventId: String,
 });
 
 const Event = mongoose.model("events", eventSchema);
