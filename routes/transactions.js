@@ -168,7 +168,7 @@ router.post("/create/expense", (req, res) => {
 // Route pour obtenir les transactions d'un utilisateur
 router.get("/userTransactions/:token", async (req, res) => {
   try {
-    const user = await User.findOne({ token: req.params.token }).populate(
+    const user = await User.findOne({token: req.params.token}).populate(
       "transactions"
     );
     // Vérification de l'existence de l'utilisateur

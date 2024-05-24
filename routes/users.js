@@ -203,7 +203,8 @@ router.post("/signin", (req, res) => {
             email: data.email,
             firstName: data.firstName,
             balance: data.balance,
-            userId: data._id,
+            // userId: data._id,// supprimé avec raida le matin 
+          
           });
         });
         // Si l'utilisateur n'est pas trouvé ou que le mot de passe ne correspond pas
@@ -249,7 +250,7 @@ router.get("/user/:id", (req, res) => {
   });
 });
 // récuperer les transactions du user
-router.get("/userTransactions/:userId", async (req, res) => {
+router.get("/userTransactions/:token", async (req, res) => {
   try {
     const token = req.headers["authorization"];
     const user = await User.findOne({ token });
@@ -269,6 +270,25 @@ router.get("/userTransactions/:userId", async (req, res) => {
   } catch (error) {
     res.json({ response: false, error: error.message });
   }
+});
+
+router.get("/event/:id", (req, res) => {
+  Event.findById(req.params.id)
+    .populate("organizer")
+    .populate("guests.userId")
+    .populate("transactions")
+    .then((event) => {
+      if (!event) {
+        res.json({ result: false, error: "Évènement non trouvé" });
+        return;
+      }
+      const { name, organizer, guests, transactions, totalSum, shareAmount } =
+        event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      res.json({
+        result: true,
+        event: { name, organizer, guests, transactions, totalSum, shareAmount }, // même clés que dans la destructuration
+      });
+    });
 });
 
 // // Route pour mettre à jour le solde du participant
