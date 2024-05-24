@@ -74,6 +74,7 @@ router.post("/create-event/:token", async (req, res) => {
         }
       }
       const newEvent = new Event({
+        eventUniqueId: uid2(32),
         organizer: user._id,
         name: req.body.name,
         eventDate: new Date(req.body.eventDate),
