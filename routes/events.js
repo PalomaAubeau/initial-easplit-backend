@@ -12,12 +12,12 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
-// Route pour créer un événement
-router.post("/create-event/:token", (req, res) => {
-  const token = req.params.token
-// Vérification de l'existence de l'utilisateur
+const { addUserToGuest } = require('./users'); 
+
+router.post("/create-event/:token", async (req, res) => {
+  const token = req.params.token;
   User.findOne({ token })
-    .then((user) => {
+    .then(async (user) => {
       if (!user) {
         res.json({ result: false, error: "Utilisateur non trouvé" });
         return;
@@ -28,59 +28,87 @@ router.post("/create-event/:token", (req, res) => {
           "eventDate",
           "paymentDate",
           "description",
+          "guests",
+          "totalSum", 
         ])
       ) {
+        console.log('Request body:', req.body);
         res.json({ result: false, error: "Champs manquants ou vides" });
         return;
       }
-      // Vérification des dates
       if (
         isNaN(new Date(req.body.eventDate)) ||
         isNaN(new Date(req.body.paymentDate))
       ) {
-        res.json({ result: false, error: "Date invalidepull" });
+        res.json({ result: false, error: "Date invalide" });
         return;
       }
-      // Création de l'événement
+      const guests = [
+        { userId: user._id, email: user.email, share: 1, hasPaid: false },
+      ];
+      let shareAmount = 1; 
+      for (let participant of req.body.guests) {
+       
+        if (participant.email !== user.email) {
+          let participantUser = await User.findOne({ email: participant.email });
+          if (!participantUser) {
+            const newUser = new User({
+              email: participant.email,
+              events: [],
+            });
+            await newUser.save();
+            participantUser = newUser;
+          }
+          const participantShare = Number(participant.parts);
+          if (isNaN(participantShare)) {
+            res.json({ result: false, error: "Invalid share amount for participant" });
+            return;
+          }
+          guests.push({
+            userId: participantUser._id,
+            email: participantUser.email,
+            share: participantShare,
+            hasPaid: false,
+          });
+          shareAmount += participantShare; 
+        }
+      }
       const newEvent = new Event({
+        eventUniqueId: uid2(32),
         organizer: user._id,
         name: req.body.name,
         eventDate: new Date(req.body.eventDate),
         paymentDate: new Date(req.body.paymentDate),
         description: req.body.description,
-        guests: [
-          { userId: user._id, email: user.email, share: 1, hasPaid: false },
-        ],
-        totalSum: 0,
-        shareAmount: 0,
+        guests: guests,
+        totalSum: req.body.totalSum,
+        shareAmount: shareAmount, 
         transactions: [],
       });
-// Sauvegarde de l'événement
-      newEvent.save().then((data) => {
-        res.json({ result: true, message: "Evenement créé avec succès", data:data});
+
+      newEvent.save().then(async (data) => {
+        for (let guest of guests) {
+        
+          if (guest.userId.toString() !== user._id.toString()) {
+            let guestUser = await User.findOne({ _id: guest.userId });
+            if (guestUser) {
+              guestUser.events.push(data._id);
+              await guestUser.save();
+            }
+          }
+        }
+    
+        let organizerUser = await User.findOne({ _id: newEvent.organizer });
+        if (organizerUser) {
+          organizerUser.events.push(data._id);
+          await organizerUser.save();
+        }
+
+        res.json({ result: true, message: "Evenement créé avec succès", data: data });
       });
     })
     .catch((err) => {
       res.json({ result: false, error: err.message });
-    });
-});
-
-router.get("/event/:id", (req, res) => {
-  Event.findById(req.params.id)
-    .populate("organizer")
-    .populate("guests.userId")
-    .populate("transactions")
-    .then((event) => {
-      if (!event) {
-        res.json({ result: false, error: "Évènement non trouvé" });
-        return;
-      }
-      const { name, organizer, guests, transactions, totalSum, shareAmount } =
-        event; // destruration de l'objet (clean-code) rajouter des champs si besoin
-      res.json({
-        result: true,
-        event: { name, organizer, guests, transactions, totalSum, shareAmount }, // même clés que dans la destructuration
-      });
     });
 });
 
