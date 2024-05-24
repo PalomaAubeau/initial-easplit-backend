@@ -250,7 +250,7 @@ router.get("/user/:id", (req, res) => {
   });
 });
 // récuperer les transactions du user
-router.get("/userTransactions/:userId", async (req, res) => {
+router.get("/userTransactions/:token", async (req, res) => {
   try {
     const token = req.headers["authorization"];
     const user = await User.findOne({ token });
