@@ -166,10 +166,9 @@ router.post("/create/expense", (req, res) => {
 });
 
 // Route pour obtenir les transactions d'un utilisateur
-router.get("/userTransactions/:userId", async (req, res) => {
+router.get("/userTransactions/:token", async (req, res) => {
   try {
-    // Recherche de l'utilisateur
-    const user = await User.findById(req.params.userId).populate(
+    const user = await User.findOne({token: req.params.token}).populate(
       "transactions"
     );
     // Vérification de l'existence de l'utilisateur
