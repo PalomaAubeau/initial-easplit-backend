@@ -272,6 +272,25 @@ router.get("/userTransactions/:userId", async (req, res) => {
   }
 });
 
+router.get("/event/:id", (req, res) => {
+  Event.findById(req.params.id)
+    .populate("organizer")
+    .populate("guests.userId")
+    .populate("transactions")
+    .then((event) => {
+      if (!event) {
+        res.json({ result: false, error: "Évènement non trouvé" });
+        return;
+      }
+      const { name, organizer, guests, transactions, totalSum, shareAmount } =
+        event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      res.json({
+        result: true,
+        event: { name, organizer, guests, transactions, totalSum, shareAmount }, // même clés que dans la destructuration
+      });
+    });
+});
+
 // // Route pour mettre à jour le solde du participant
 // router.put("/user/:id/transaction", (req, res) => {
 //   // On cherche l'utilisateur avec l'ID donné
