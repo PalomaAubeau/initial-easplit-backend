@@ -123,4 +123,49 @@ router.get("/user-events/:token", (req, res) => {
     });
 });
 
+router.get("/event/:id", (req, res) => {
+  Event.findById(req.params.id)
+    .populate("organizer")
+    .populate("guests.userId")
+    .populate("transactions")
+    .then((event) => {
+      if (!event) {
+        res.json({ result: false, error: "Évènement non trouvé" });
+        return;
+      }
+      const { name, organizer, guests, transactions, totalSum, shareAmount } =
+        event; // destruration de l'objet (clean-code) rajouter des champs si besoin
+      res.json({
+        result: true,
+        event: { name, organizer, guests, transactions, totalSum, shareAmount }, // même clés que dans la destructuration
+      });
+    });
+});
+
+// router.get("/user-events", (req, res) => {
+//   const token = req.headers['authorization'];
+
+//   User.findOne({ token })
+//     .populate("events")
+//     .then((user) => {
+//       if (!user) {
+//         res.json({ result: false, error: "User not found" });
+//         return;
+//       }
+//       res.json({ result: true, events: user.events });
+//     });
+// });
+
+router.get("/user-events/:token", (req, res) => {
+  User.findOne({ token: req.params.token })
+    .populate("events")
+    .then((user) => {
+      if (!user) {
+        res.json({ result: false, error: "User non trouvé" });
+        return;
+      }
+      res.json({ result: true, events: user.events });
+    });
+});
+
 module.exports = router;
