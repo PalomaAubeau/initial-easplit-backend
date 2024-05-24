@@ -203,7 +203,8 @@ router.post("/signin", (req, res) => {
             email: data.email,
             firstName: data.firstName,
             balance: data.balance,
-            userId: data._id,
+            // userId: data._id,// supprimé avec raida le matin 
+          
           });
         });
         // Si l'utilisateur n'est pas trouvé ou que le mot de passe ne correspond pas
