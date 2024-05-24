@@ -43,26 +43,26 @@ router.post("/create-event/:token", async (req, res) => {
         res.json({ result: false, error: "Date invalide" });
         return;
       }
+      let organizerShare = 1; 
       const guests = [
-        { userId: user._id, email: user.email, share: 1, hasPaid: false },
+        { userId: user._id, email: user.email, share: organizerShare, hasPaid: false },
       ];
-      let shareAmount = 1; 
+      let shareAmount = 0;
       for (let participant of req.body.guests) {
-       
-        if (participant.email !== user.email) {
+        let participantShare = Number(participant.parts);
+        if (isNaN(participantShare)) {
+          res.json({ result: false, error: "Invalid share amount for participant" });
+          return;
+        }
+        if (participant.email === user.email) {
+          organizerShare = participantShare;
+          guests[0].share = organizerShare;
+        } else {
           let participantUser = await User.findOne({ email: participant.email });
           if (!participantUser) {
-            const newUser = new User({
-              email: participant.email,
-              events: [],
-            });
-            await newUser.save();
-            participantUser = newUser;
-          }
-          const participantShare = Number(participant.parts);
-          if (isNaN(participantShare)) {
-            res.json({ result: false, error: "Invalid share amount for participant" });
-            return;
+            
+            participantUser = new User({ email: participant.email });
+            await participantUser.save();
           }
           guests.push({
             userId: participantUser._id,
@@ -70,8 +70,8 @@ router.post("/create-event/:token", async (req, res) => {
             share: participantShare,
             hasPaid: false,
           });
-          shareAmount += participantShare; 
         }
+        shareAmount += participantShare; 
       }
       const newEvent = new Event({
         eventUniqueId: uid2(32),
@@ -88,7 +88,6 @@ router.post("/create-event/:token", async (req, res) => {
 
       newEvent.save().then(async (data) => {
         for (let guest of guests) {
-        
           if (guest.userId.toString() !== user._id.toString()) {
             let guestUser = await User.findOne({ _id: guest.userId });
             if (guestUser) {
@@ -111,20 +110,6 @@ router.post("/create-event/:token", async (req, res) => {
       res.json({ result: false, error: err.message });
     });
 });
-
-// router.get("/user-events", (req, res) => {
-//   const token = req.headers['authorization'];
-
-//   User.findOne({ token })
-//     .populate("events")
-//     .then((user) => {
-//       if (!user) {
-//         res.json({ result: false, error: "User not found" });
-//         return;
-//       }
-//       res.json({ result: true, events: user.events });
-//     });
-// });
 
 router.get("/user-events/:token", (req, res) => {
   User.findOne({ token: req.params.token })
