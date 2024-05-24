@@ -12,6 +12,24 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
+
+// const updateUserWithEvent = async (email, eventId) => {
+//   try {
+//     // Recherche de l'utilisateur par son ID
+//     const user = await User.findOne(email);
+//     // Si l'utilisateur est trouvé, mettre à jour son champ events avec l'ID de l'événement
+//     if (user) {
+//       user.events.push(eventId);
+//       await user.save();
+//     } else {
+//       console.log(`Utilisateur avec l'email ${email} non trouvé`);
+//     }
+//   } catch (error) {
+//     console.error('Erreur lors de la mise à jour de l\'utilisateur avec l\'événement :', error);
+//   }
+// };
+
+
 const { addUserToGuest } = require('./users'); 
 
 router.post("/create-event/:token", async (req, res) => {
@@ -79,31 +97,16 @@ router.post("/create-event/:token", async (req, res) => {
         eventDate: new Date(req.body.eventDate),
         paymentDate: new Date(req.body.paymentDate),
         description: req.body.description,
-        guests: guests,
-        totalSum: req.body.totalSum,
-        shareAmount: shareAmount, 
+        guests: [
+          { userId: user._id, email: user.email, share: 1, hasPaid: false },
+        ],
+        totalSum: 0,
+        shareAmount: 0,
         transactions: [],
       });
-
-      newEvent.save().then(async (data) => {
-        for (let guest of guests) {
-        
-          if (guest.userId.toString() !== user._id.toString()) {
-            let guestUser = await User.findOne({ _id: guest.userId });
-            if (guestUser) {
-              guestUser.events.push(data._id);
-              await guestUser.save();
-            }
-          }
-        }
-    
-        let organizerUser = await User.findOne({ _id: newEvent.organizer });
-        if (organizerUser) {
-          organizerUser.events.push(data._id);
-          await organizerUser.save();
-        }
-
-        res.json({ result: true, message: "Evenement créé avec succès", data: data });
+// Sauvegarde de l'événement
+      newEvent.save().then((data) => {
+        res.json({ result: true, message: "Evenement créé avec succès", data:data});
       });
     })
     .catch((err) => {
