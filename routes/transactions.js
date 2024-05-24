@@ -175,8 +175,10 @@ router.get("/userTransactions/:token", async (req, res) => {
     if (!user) {
       return res.json({ response: false, error: "Utilisateur non trouvé" });
     }
+    // Trier les transactions par date décroissante
+    const sortedTransactions = user.transactions.sort((a, b) => b.date - a.date);
     // Renvoi des transactions de l'utilisateur
-    res.json({ response: true, transactions: user.transactions });
+    res.json({ response: true, transactions: sortedTransactions });
   } catch (error) {
     // Gestion des erreurs
     res.json({ response: false, error: error.message });
