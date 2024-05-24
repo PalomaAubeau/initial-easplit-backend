@@ -43,9 +43,10 @@ router.post("/create-event/:token", async (req, res) => {
         res.json({ result: false, error: "Date invalide" });
         return;
       }
-      const guests = [
-        { userId: user._id, email: user.email, share: 1, hasPaid: false },
-      ];
+      // const guests = [
+      //   console.log(user),
+      //   { userId: user._id, email: user.email, hasPaid: false },
+      // ];
       let shareAmount = 1; 
       for (let participant of req.body.guests) {
        
@@ -112,19 +113,19 @@ router.post("/create-event/:token", async (req, res) => {
     });
 });
 
-// router.get("/user-events", (req, res) => {
-//   const token = req.headers['authorization'];
+router.get("/user-events", (req, res) => {
+  const token = req.headers['authorization'];
 
-//   User.findOne({ token })
-//     .populate("events")
-//     .then((user) => {
-//       if (!user) {
-//         res.json({ result: false, error: "User not found" });
-//         return;
-//       }
-//       res.json({ result: true, events: user.events });
-//     });
-// });
+  User.findOne({ token })
+    .populate("events")
+    .then((user) => {
+      if (!user) {
+        res.json({ result: false, error: "User not found" });
+        return;
+      }
+      res.json({ result: true, events: user.events });
+    });
+});
 
 router.get("/user-events/:token", (req, res) => {
   User.findOne({ token: req.params.token })
