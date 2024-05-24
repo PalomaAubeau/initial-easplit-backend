@@ -12,7 +12,7 @@ const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
 
-const { addUserToGuest } = require('./users'); 
+const { addUserToGuest } = require("./users");
 
 router.post("/create-event/:token", async (req, res) => {
   const token = req.params.token;
@@ -29,10 +29,10 @@ router.post("/create-event/:token", async (req, res) => {
           "paymentDate",
           "description",
           "guests",
-          "totalSum", 
+          "totalSum",
         ])
       ) {
-        console.log('Request body:', req.body);
+        console.log("Request body:", req.body);
         res.json({ result: false, error: "Champs manquants ou vides" });
         return;
       }
@@ -43,24 +43,33 @@ router.post("/create-event/:token", async (req, res) => {
         res.json({ result: false, error: "Date invalide" });
         return;
       }
-      let organizerShare = 1; 
+      let organizerShare = 1;
       const guests = [
-        { userId: user._id, email: user.email, share: organizerShare, hasPaid: false },
+        {
+          userId: user._id,
+          email: user.email,
+          share: organizerShare,
+          hasPaid: false,
+        },
       ];
       let shareAmount = 0;
       for (let participant of req.body.guests) {
         let participantShare = Number(participant.parts);
         if (isNaN(participantShare)) {
-          res.json({ result: false, error: "Invalid share amount for participant" });
+          res.json({
+            result: false,
+            error: "Invalid share amount for participant",
+          });
           return;
         }
         if (participant.email === user.email) {
           organizerShare = participantShare;
           guests[0].share = organizerShare;
         } else {
-          let participantUser = await User.findOne({ email: participant.email });
+          let participantUser = await User.findOne({
+            email: participant.email,
+          });
           if (!participantUser) {
-            
             participantUser = new User({ email: participant.email });
             await participantUser.save();
           }
@@ -71,7 +80,7 @@ router.post("/create-event/:token", async (req, res) => {
             hasPaid: false,
           });
         }
-        shareAmount += participantShare; 
+        shareAmount += participantShare;
       }
       const newEvent = new Event({
         eventUniqueId: uid2(32),
@@ -82,7 +91,7 @@ router.post("/create-event/:token", async (req, res) => {
         description: req.body.description,
         guests: guests,
         totalSum: req.body.totalSum,
-        shareAmount: shareAmount, 
+        shareAmount: shareAmount,
         transactions: [],
       });
 
@@ -96,14 +105,18 @@ router.post("/create-event/:token", async (req, res) => {
             }
           }
         }
-    
+
         let organizerUser = await User.findOne({ _id: newEvent.organizer });
         if (organizerUser) {
           organizerUser.events.push(data._id);
           await organizerUser.save();
         }
 
-        res.json({ result: true, message: "Evenement créé avec succès", data: data });
+        res.json({
+          result: true,
+          message: "Evenement créé avec succès",
+          data: data,
+        });
       });
     })
     .catch((err) => {
@@ -123,6 +136,7 @@ router.get("/user-events/:token", (req, res) => {
     });
 });
 
+//Route utilisée dans le screen EventScreen
 router.get("/event/:id", (req, res) => {
   Event.findById(req.params.id)
     .populate("organizer")
@@ -142,6 +156,19 @@ router.get("/event/:id", (req, res) => {
     });
 });
 
+//Route utilisée dans le screen EventsListScreen
+router.get("/user-events/:token", (req, res) => {
+  User.findOne({ token: req.params.token })
+    .populate("events")
+    .then((user) => {
+      if (!user) {
+        res.json({ result: false, error: "User non trouvé" });
+        return;
+      }
+      res.json({ result: true, events: user.events });
+    });
+});
+
 // router.get("/user-events", (req, res) => {
 //   const token = req.headers['authorization'];
 
@@ -155,17 +182,5 @@ router.get("/event/:id", (req, res) => {
 //       res.json({ result: true, events: user.events });
 //     });
 // });
-
-router.get("/user-events/:token", (req, res) => {
-  User.findOne({ token: req.params.token })
-    .populate("events")
-    .then((user) => {
-      if (!user) {
-        res.json({ result: false, error: "User non trouvé" });
-        return;
-      }
-      res.json({ result: true, events: user.events });
-    });
-});
 
 module.exports = router;
