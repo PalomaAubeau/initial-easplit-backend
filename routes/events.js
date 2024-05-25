@@ -139,7 +139,7 @@ router.get("/user-events/:token", (req, res) => {
 //Route utilisée dans le screen EventScreen
 router.get("/event/:id", (req, res) => {
   Event.findById(req.params.id)
-    .populate("organizer")
+    .populate("organizer", ["firstName", "email"])
     .populate("guests.userId")
     .populate("transactions")
     .then((event) => {
