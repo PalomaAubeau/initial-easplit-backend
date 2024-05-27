@@ -157,7 +157,7 @@ router.get("/user-events/:token", (req, res) => {
 router.get("/event/:id", (req, res) => {
   Event.findById(req.params.id)
     .populate("organizer", ["firstName", "email"])
-    .populate("guests", ["firstName", "email", "share", "hasPaid"]) //Récupération des champs qui nous intéresse dans l'object
+    .populate("guests.userId", ["firstName", "email", "share", "hasPaid"]) //Récupération des champs qui nous intéresse dans l'object
     .populate("transactions")
     .then((event) => {
       if (!event) {
