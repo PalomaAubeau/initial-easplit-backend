@@ -49,7 +49,7 @@ router.post("/create-event/:token", async (req, res) => {
       }
       // on vérifie que le montant total est un nombre
       let organizerShare = 1;
-      
+
       // On definit guests comme un tableau contenant dejà l'organisateur
       const guests = [
         {
@@ -81,7 +81,7 @@ router.post("/create-event/:token", async (req, res) => {
           let participantUser = await User.findOne({
             email: participant.email,
           });
-          
+
           // Si l'utilisateur n'est pas enregistré, on le crée
           if (!participantUser) {
             participantUser = new User({ email: participant.email });
@@ -111,7 +111,7 @@ router.post("/create-event/:token", async (req, res) => {
         shareAmount: shareAmount,
         transactions: [],
       });
-// On sauvegarde l'évènement
+      // On sauvegarde l'évènement
       newEvent.save().then(async (data) => {
         for (let guest of guests) {
           if (guest.userId.toString() !== user._id.toString()) {
@@ -122,7 +122,7 @@ router.post("/create-event/:token", async (req, res) => {
             }
           }
         }
-// On ajoute l'évènement à la liste des évènements de l'organisateur
+        // On ajoute l'évènement à la liste des évènements de l'organisateur
         let organizerUser = await User.findOne({ _id: newEvent.organizer });
         if (organizerUser) {
           organizerUser.events.push(data._id);
