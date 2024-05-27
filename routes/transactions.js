@@ -12,7 +12,7 @@ const { checkBody } = require("../modules/checkBody");
 // Route pour le rechargement du solde d'un utilisateur
 router.post("/create/reload", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter", "recipient","type", "amount"])) {
+  if (!checkBody(req.body, ["emitter", "recipient", "type", "amount"])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
@@ -42,7 +42,9 @@ router.post("/create/reload", (req, res) => {
 // Route pour créer un paiement
 router.post("/create/payment", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter", "name", "amount", "recipient", 'type'])) {
+  if (
+    !checkBody(req.body, ["emitter", "name", "amount", "recipient", "type"])
+  ) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
@@ -84,7 +86,7 @@ router.post("/create/payment", (req, res) => {
 // Route pour créer un remboursement
 router.post("/create/refund", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter","type"])) {
+  if (!checkBody(req.body, ["emitter", "type"])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
@@ -168,7 +170,7 @@ router.post("/create/expense", (req, res) => {
 // Route pour obtenir les transactions d'un utilisateur
 router.get("/userTransactions/:token", async (req, res) => {
   try {
-    const user = await User.findOne({token: req.params.token}).populate(
+    const user = await User.findOne({ token: req.params.token }).populate(
       "transactions"
     );
     // Vérification de l'existence de l'utilisateur
@@ -202,6 +204,57 @@ router.get("/:transactionId", async (req, res) => {
     // Gestion des erreurs
     res.json({ response: false, error: error.message });
   }
+});
+
+//Route pour modifier/créer la transaction et modifier le statut du paiment de l'utilisateur en test sur EventScreen
+router.post("/create/payment/:token/:eventUniqueId", (req, res) => {
+  // Vérification du corps de la requête
+  User.findOne({ token: req.params.token }).then((user) => {
+    //console.log("test de ce que renvoie user pour create/payment", user);
+    if (!user) {
+      res.json({ result: false, error: "Compte utilisateur non trouvé" });
+      return;
+    }
+
+    Event.findOne({ eventUniqueId: req.params.eventUniqueId }).then((event) => {
+      console.log("event dans route transactions/create/payment:", event);
+      // Création de la transaction
+      const userPayment = new Transaction({
+        type: req.body.type,
+        eventId: event._id,
+        emitter: user.token,
+        recipient: event.eventUniqueId,
+        name: event.name,
+        amount: event.shareAmount,
+      });
+      // Sauvegarde de la transaction
+      userPayment.save().then((transactionSaved) => {
+        //console.log("test de ce que renvoie userPayment", transactionSaved);
+        //Vérification du solde
+        if (user.balance < Number(req.body.amount)) {
+          return res.status(400).json({ error: "Fonds insuffisants" });
+        }
+        // Mise à jour du solde de l'utilisateur
+        user.balance -= Number(req.body.amount);
+        // Ajout de la transaction à l'utilisateur
+        user.transactions.push(userPayment._id);
+        // Sauvegarde de l'utilisateur
+        user.save().then(() => {
+          // Recherche de l'événement
+          findOne({ eventUniqueId: req.params.eventUniqueId }).then((event) => {
+            // Vérification de l'existence de l'événement
+            if (!event) {
+              return res.status(400).json({ error: "Événement non trouvé" });
+            }
+            // Ajout de la transaction à l'événement
+            event.transactions.push(userPayment._id);
+            // Sauvegarde de l'événement
+            event.save().then(() => res.json({ response: true, userPayment }));
+          });
+        });
+      });
+    });
+  });
 });
 
 // Exportation du routeur
