@@ -82,6 +82,77 @@ function addUserToGuest(user, eventId, res) {
   });
 }
 
+// Fonction pour ajouter un utilisateur à la liste des invités d'un événement
+function addUserToGuest(user, eventId, res) {
+  const mailString = process.env.MAIL_STRING;
+  // On cherche l'événement avec l'ID donné
+  Event.findById(eventId).then((event) => {
+    if (event) {
+      // On vérifie si l'utilisateur n'est pas déjà invité à l'événement
+      const guestExist = event.guests.some(
+        (guest) => guest.email.toLowerCase() === user.email.toLowerCase()
+      );
+      // Si l'utilisateur n'est pas déjà invité, on l'ajoute à la liste des invités
+      if (!guestExist) {
+        event.guests.push({
+          userId: user._id,
+          email: user.email,
+          share: 1,
+          hasPaid: false,
+        });
+        // On sauvegarde l'événement
+        event.save().then(() => {
+          // On envoie un email à l'utilisateur pour l'informer de son invitation
+          let transporter = nodemailer.createTransport({
+            service: "outlook",
+            auth: {
+              user: "easplit@outlook.com",
+              pass: `${mailString}`,
+            },
+          });
+
+          // On crée le contenu de l'email
+          let description = event.description;
+          let name = event.name;
+          let organizerFirstName = event.organizer.firstName;
+          let eventDate = event.date;
+          let expoLink = "https://expo.io/@yourusername/your-app";
+
+          let mailOptions = {
+            from: "easplit@outlook.com",
+            to: user.email,
+            subject: "Invitation à un événement",
+            text: `Bonjour, vous avez été invité par ${organizerFirstName} pour l'événement suivant : 
+    ${name}
+    Description de l'événement : ${description}
+    Date de l'événement : ${eventDate}
+    Rejoignez l'événement sur Easplit via : ${expoLink}`,
+          };
+          // On envoie l'email
+          transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log("Email sent: " + info.response);
+            }
+          });
+          // On renvoie une réponse positive si l'utilisateur a été ajouté et l'email envoyé
+          res.json({
+            result: true,
+            message: "Invitation envoyée",
+          });
+        });
+      } else {
+        // Si l'utilisateur est déjà invité
+        res.json({ result: true, message: "Compte déjà existant" });
+      }
+    } else {
+      // Si l'événement n'est pas trouvé
+      res.json({ result: false, error: "Événement non trouvé" });
+    }
+  });
+}
+
 // Route qui va créer un nouvel utilisateur temporaire suite à une invitation
 router.post("/invite", (req, res) => {
   // On vérifie si les champs sont bien remplis
@@ -90,13 +161,16 @@ router.post("/invite", (req, res) => {
     return;
   }
 
+  // COnvertion de l'email en minuscule
+  const email = req.body.email.toLowerCase();
+
   // On vérifie si l'utilisateur existe déjà
-  User.findOne({ email: { $regex: new RegExp(req.body.email, "i") } }).then(
+  User.findOne({ email: email }).then(
     (data) => {
       // Si l'utilisateur n'existe pas, on le crée
       if (data === null) {
         const newUser = new User({
-          email: req.body.email,
+          email: email,
           events: [req.body.eventId],
         });
         // On sauvegarde le nouvel utilisateur
@@ -117,6 +191,7 @@ router.post("/invite", (req, res) => {
     }
   );
 });
+
 // Route qui va créer un nouvel utilisateur
 router.post("/signup", (req, res) => {
   // On vérifie si les champs sont bien remplis
@@ -125,8 +200,12 @@ router.post("/signup", (req, res) => {
     res.json({ result: false, error: "Champs manquants ou vides" });
     return;
   }
+
+  // Convertion de l'email en minuscule
+  const email = req.body.email.toLowerCase();
+
   // On cherche un utilisateur avec le même email
-  User.findOne({ email: { $regex: new RegExp(req.body.email, "i") } }).then(
+  User.findOne({ email: email }).then(
     (data) => {
       if (data !== null && data.password && data.firstName && data.lastName) {
         // Si un utilisateur est trouvé avec non-empty password, firstName, and lastName, on renvoie une erreur
@@ -137,7 +216,7 @@ router.post("/signup", (req, res) => {
         const updatedUser = {
           firstName: req.body.firstName,
           lastName: req.body.lastName,
-          email: req.body.email,
+          email: email,
           balance: 0,
           password: hash,
           token: uid2(32),
@@ -179,7 +258,7 @@ router.post("/signup", (req, res) => {
     }
   );
 });
-// route for login
+// route pour le login
 router.post("/signin", (req, res) => {
   // Vérification de la présence des champs obligatoires avec le module checkBody
   if (!checkBody(req.body, ["email", "password"])) {

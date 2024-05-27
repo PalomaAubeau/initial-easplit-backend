@@ -14,7 +14,9 @@ const uid2 = require("uid2");
 
 const { addUserToGuest } = require("./users");
 
+// Route utilisée dans le screen CreateEventScreen
 router.post("/create-event/:token", async (req, res) => {
+  // on récupère le token de l'utilisateur
   const token = req.params.token;
   User.findOne({ token })
     .then(async (user) => {
@@ -22,6 +24,7 @@ router.post("/create-event/:token", async (req, res) => {
         res.json({ result: false, error: "Utilisateur non trouvé" });
         return;
       }
+      // on vérifie que les champs obligatoires sont bien remplis
       if (
         !checkBody(req.body, [
           "name",
@@ -36,6 +39,7 @@ router.post("/create-event/:token", async (req, res) => {
         res.json({ result: false, error: "Champs manquants ou vides" });
         return;
       }
+      // on vérifie que les dates sont valides
       if (
         isNaN(new Date(req.body.eventDate)) ||
         isNaN(new Date(req.body.paymentDate))
@@ -43,7 +47,10 @@ router.post("/create-event/:token", async (req, res) => {
         res.json({ result: false, error: "Date invalide" });
         return;
       }
+      // on vérifie que le montant total est un nombre
       let organizerShare = 1;
+      
+      // On definit guests comme un tableau contenant dejà l'organisateur
       const guests = [
         {
           userId: user._id,
@@ -52,27 +59,35 @@ router.post("/create-event/:token", async (req, res) => {
           hasPaid: false,
         },
       ];
+      // On definit shareAmount comme un nombre
       let shareAmount = 0;
+      // On boucle sur les participants
       for (let participant of req.body.guests) {
         let participantShare = Number(participant.parts);
         if (isNaN(participantShare)) {
           res.json({
             result: false,
-            error: "Invalid share amount for participant",
+            error: "Le partage doit être un nombre",
           });
           return;
         }
+        // On vérifie que l'organisateur n'est pas dans la liste des participants
         if (participant.email === user.email) {
           organizerShare = participantShare;
+          // On met à jour le share de l'organisateur
           guests[0].share = organizerShare;
         } else {
+          // On vérifie si l'utilisateur est déjà enregistré
           let participantUser = await User.findOne({
             email: participant.email,
           });
+          
+          // Si l'utilisateur n'est pas enregistré, on le crée
           if (!participantUser) {
             participantUser = new User({ email: participant.email });
             await participantUser.save();
           }
+          // On ajoute le participant à la liste des participants
           guests.push({
             userId: participantUser._id,
             email: participantUser.email,
@@ -80,8 +95,10 @@ router.post("/create-event/:token", async (req, res) => {
             hasPaid: false,
           });
         }
+        // On met à jour le montant total
         shareAmount += participantShare;
       }
+      // On crée l'évènement
       const newEvent = new Event({
         eventUniqueId: uid2(32),
         organizer: user._id,
@@ -94,7 +111,7 @@ router.post("/create-event/:token", async (req, res) => {
         shareAmount: shareAmount,
         transactions: [],
       });
-
+// On sauvegarde l'évènement
       newEvent.save().then(async (data) => {
         for (let guest of guests) {
           if (guest.userId.toString() !== user._id.toString()) {
@@ -105,7 +122,7 @@ router.post("/create-event/:token", async (req, res) => {
             }
           }
         }
-
+// On ajoute l'évènement à la liste des évènements de l'organisateur
         let organizerUser = await User.findOne({ _id: newEvent.organizer });
         if (organizerUser) {
           organizerUser.events.push(data._id);
