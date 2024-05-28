@@ -42,22 +42,20 @@ router.post("/create/reload", (req, res) => {
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
   transaction.save().then(() => {
-    // Recherche de l'utilisateur
-    User.findById(req.body.emitter).then((user) => {
+    // Mise à jour du solde de l'utilisateur et ajout de la transaction
+    User.findByIdAndUpdate(req.body.emitter, {
+      $inc: { balance: Number(req.body.amount) },
+      $push: { transactions: transaction._id }
+    }, { new: true }).then((user) => {
       // Vérification de l'existence de l'utilisateur
       if (!user) {
         return res.status(400).json({ error: "Utilisateur non trouvé" });
       }
-      // Mise à jour du solde de l'utilisateur
-      user.balance += Number(req.body.amount);
       // Vérification du solde
       if (user.balance < 0) {
         return res.status(400).json({ error: "Fonds insuffisants" });
       }
-      // Ajout de la transaction à l'utilisateur
-      user.transactions.push(transaction._id);
-      // Sauvegarde de l'utilisateur
-      user.save().then(() => res.json({ response: true, transaction }));
+      res.json({ response: true, transaction });
     });
   });
 });
@@ -65,43 +63,27 @@ router.post("/create/reload", (req, res) => {
 // Route pour créer un paiement
 router.post("/create/payment", (req, res) => {
   // Vérification du corps de la requête
-  if (
-    !checkBody(req.body, ["emitter", "name", "amount", "recipient", "type"])
-  ) {
+  if (!checkBody(req.body, ["emitter", "name", "amount", "recipient", "type"])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
   transaction.save().then(() => {
-    // Recherche de l'utilisateur
-    User.findById(req.body.emitter).then((user) => {
+    // Mise à jour du solde de l'utilisateur et ajout de la transaction
+    User.findByIdAndUpdate(req.body.emitter, {
+      $inc: { balance: -Number(req.body.amount) },
+      $push: { transactions: transaction._id }
+    }, { new: true }).then((user) => {
       // Vérification de l'existence de l'utilisateur
       if (!user) {
         return res.status(400).json({ error: "Utilisateur non trouvé" });
       }
       // Vérification du solde
-      if (user.balance < Number(req.body.amount)) {
+      if (user.balance < 0) {
         return res.status(400).json({ error: "Fonds insuffisants" });
       }
-      // Mise à jour du solde de l'utilisateur
-      user.balance -= Number(req.body.amount);
-      // Ajout de la transaction à l'utilisateur
-      user.transactions.push(transaction._id);
-      // Sauvegarde de l'utilisateur
-      user.save().then(() => {
-        // Recherche de l'événement
-        Event.findById(req.body.recipient).then((event) => {
-          // Vérification de l'existence de l'événement
-          if (!event) {
-            return res.status(400).json({ error: "Événement non trouvé" });
-          }
-          // Ajout de la transaction à l'événement
-          event.transactions.push(transaction._id);
-          // Sauvegarde de l'événement
-          event.save().then(() => res.json({ response: true, transaction }));
-        });
-      });
+      res.json({ response: true, transaction });
     });
   });
 });
@@ -128,21 +110,12 @@ router.post("/create/refund", (req, res) => {
       }
       // Calcul du montant par part
       const perShareAmount = Number(event.totalSum || 0) / event.shareAmount;
-      // Mise à jour du solde de chaque invité
+      // Mise à jour du solde de chaque invité et ajout de la transaction
       let promises = event.guests.map((guest) => {
-        return User.findById(guest.userId).then((user) => {
-          // Vérification de l'existence de l'utilisateur
-          if (!user) {
-            console.log("Utilisateur avec ID ${guest.userId} non trouvé");
-            return;
-          }
-          // Mise à jour du solde de l'utilisateur
-          user.balance += perShareAmount * guest.share;
-          // Ajout de la transaction à l'utilisateur
-          user.transactions.push(transaction._id);
-          // Sauvegarde de l'utilisateur
-          return user.save();
-        });
+        return User.findByIdAndUpdate(guest.userId, {
+          $inc: { balance: perShareAmount * guest.share },
+          $push: { transactions: transaction._id }
+        }, { new: true });
       });
       // Mise à jour de l'événement après le remboursement
       Promise.all(promises).then(() => {
@@ -170,22 +143,20 @@ router.post("/create/expense", (req, res) => {
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
   transaction.save().then(() => {
-    // Recherche de l'événement
-    Event.findById(req.body.emitter).then((event) => {
+    // Mise à jour du solde de l'événement et ajout de la transaction
+    Event.findByIdAndUpdate(req.body.emitter, {
+      $inc: { totalSum: -Number(req.body.amount) },
+      $push: { transactions: transaction._id }
+    }, { new: true }).then((event) => {
       // Vérification de l'existence de l'événement
       if (!event) {
         return res.status(400).json({ error: "Événement non trouvé" });
       }
       // Vérification du solde de l'événement
-      if (event.totalSum < Number(req.body.amount)) {
+      if (event.totalSum < 0) {
         return res.status(400).json({ error: "Fonds insuffisants" });
       }
-      // Mise à jour du solde de l'événement
-      event.totalSum -= Number(req.body.amount);
-      // Ajout de la transaction à l'événement
-      event.transactions.push(transaction._id);
-      // Sauvegarde de l'événement
-      event.save().then(() => res.json({ response: true, transaction }));
+      res.json({ response: true, transaction });
     });
   });
 });
@@ -229,7 +200,7 @@ router.get("/:transactionId", async (req, res) => {
   }
 });
 
-//Route pour modifier/créer la transaction et modifier le statut du paiment de l'utilisateur en test sur EventScreen
+//Route pour créer un paient sur un évènement, ajouter la transaction dans la BDD (collections transactions et user), modifier statut du paiment de l'utilisateur sur EventScreen
 router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   const userCall = await User.findOne({ token: req.params.token });
   const eventCall = await Event.findOne({
@@ -260,28 +231,22 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   const isSamePerson = event.guests.find(
     (guest) => String(guest.userId._id) === String(user._id)
   );
-  // console.log("résultat du find pour création payment", isSamePerson);
-  //   {
-  //   userId: {
-  //     _id: new ObjectId('664cb32590817b04a47bd457'),
-  //     firstName: 'Paloma',
-  //     email: 'test@gmail.com'
-  //   },
-  //   email: 'test@gmail.com',
-  //   share: 1,
-  //   hasPaid: false,
-  //   _id: new ObjectId('665084c25b8edd087301f5ae')
-  // }
-
   if (isSamePerson) {
+    const userDue = shareAmountPerGuest * isSamePerson.share;
+    if (user.balance < Number(userDue)) {
+      res.json({ result: false, error: "Veuillez recharger votre compte" });
+      return;
+    }
+    const balanceSetForUser = user.balance - Number(userDue);
     // Création de la transaction
     const userPayment = new Transaction({
+      amount: userDue,
+      //date: new Date(),
       type: req.body.type,
       eventId: event._id,
       emitter: user.token,
       recipient: event.eventUniqueId,
       name: event.name,
-      amount: shareAmountPerGuest * isSamePerson.share,
     });
     // Sauvegarde de la transaction
     userPayment.save().then((transactionSaved) => {
@@ -295,125 +260,28 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
         "guests.userId": isSamePerson.userId._id,
       },
       { $set: { "guests.$.hasPaid": true } }
-    ).then(() => {
-      return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
-        (updatedEvent) => {
-          const updatedGuest = updatedEvent.guests.find(
-            (guest) => String(guest.userId) === String(isSamePerson.userId._id)
-          );
-          //console.log("Updated guest's hasPaid status:", updatedGuest.hasPaid);
-        }
-      );
-    });
-  }
-  
-// Code Béranger Orion :
+    );
+    // .then(() => {
+    //   return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
+    //     (updatedEvent) => {
+    //       const updatedGuest = updatedEvent.guests.find(
+    //         (guest) => String(guest.userId) === String(isSamePerson.userId._id)
+    //       );
+    //       console.log("Updated guest's hasPaid status:", updatedGuest.hasPaid);
+    //     }
+    //   );
+    // });
 
-// Vérification du corps de la requête
-if (!checkBody(req.body, ["emitter", "recipient", "type", "amount"])) {
-  return res.status(400).json({ error: "Corps invalide" });
-}
-
-try {
-  // Retrouver l'utilisateur par son token
-  const emitter = await User.findOne({ token: req.body.emitter });
-  if (!emitter) {
-    throw new Error("Utilisateur non trouvé");
-  }
-  // Création de la transaction
-  const transaction = new Transaction({
-    ...req.body,
-    emitter: emitter._id
-  });
-  await transaction.save();
-
-  // Mise à jour du solde en fonction du type de transaction
-  if (["payment", "expense"].includes(req.body.type)) {
-    if (emitter.balance < req.body.amount) {
-      throw new Error("Fonds insuffisants");
-    }
-    emitter.balance -= Number(req.body.amount);
-  } else if (["refund", "reload"].includes(req.body.type)) {
-    emitter.balance += Number(req.body.amount);
-  } else {
-    throw new Error("Type de transaction invalide");
-  }
-
-  // Ajout de la transaction à l'utilisateur émetteur
-  emitter.transactions = [...emitter.transactions, transaction._id];
-  await emitter.save();
-
-  // Mise à jour de l'événement si nécessaire
-  if (req.body.type !== "reload"){
-
-    if (req.body.recipient) {
-      const event = await Event.findById(req.body.recipient);
-      if (event) {
-        event.transactions.push(transaction._id);
-        await event.save();
+    User.updateOne(
+      { _id: user._id },
+      {
+        $push: { transactions: userPayment._id },
+        $set: { balance: balanceSetForUser },
       }
-    }
+    );
+    // .then(console.log("Updated User:", user));
   }
-
-  // Renvoi de la réponse
-  res.json({ response: true, transaction });
-} catch (error) {
-  res.status(400).json({ error: error.message });
-}
 });
-
-  //
-  //
-  //
-  //
-  //
-  // User.findOne({ token: req.params.token }).then((user) => {
-  //   //console.log("test de ce que renvoie user pour create/payment", user);
-  //   if (!user) {
-  //     res.json({ result: false, error: "Compte utilisateur non trouvé" });
-  //     return;
-  //   }
-
-  //   Event.findOne({ eventUniqueId: req.params.eventUniqueId })
-  //     .populate("guests.userId", [
-  //       "userId",
-  //       "firstName",
-  //       "email",
-  //       "share",
-  //       "hasPaid",
-  //     ])
-  //     .populate("transactions")
-  //     .then((event) => {
-  //       //console.log("event dans route transactions/create/payment:", event);
-  //       const shareAmountPerGuest = event.totalSum / event.shareAmount;
-  //       console.log(user);
-  //       const isWellGuest = event.guests.find(
-  //         (guest) => String(guest.userId._id) === String(user._id)
-  //       );
-
-  //       console.log({ isWellGuest });
-
-  //       // TODO Renommer variable
-  //       if (isWellGuest) {
-  //         // Création de la transaction
-  //         const userPayment = new Transaction({
-  //           type: req.body.type,
-  //           eventId: event._id,
-  //           emitter: user.token,
-  //           recipient: event.eventUniqueId,
-  //           name: event.name,
-  //           amount: shareAmountPerGuest * isWellGuest.share,
-  //           hasPaid: true,
-  //         });
-  //         // Sauvegarde de la transaction
-  //         userPayment.save().then((transactionSaved) => {
-  //           console.log("test de ce que renvoie userPayment", transactionSaved);
-  //         });
-  //       }
-  //     });
-  // });
-
-// Exportation du routeur
 
 //TEST//
 
