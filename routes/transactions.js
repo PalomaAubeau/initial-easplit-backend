@@ -57,7 +57,7 @@ router.post("/create/reload", (req, res) => {
       // Ajout de la transaction à l'utilisateur
       user.transactions.push(transaction._id);
       // Sauvegarde de l'utilisateur
-      user.save().then(() => res.json({ response: true, transaction }));
+      user.save().then(() => res.json({ response: true, transaction }));//Raida alarmé
     });
   });
 });
@@ -378,6 +378,7 @@ router.post("/createTransaction", async (req, res) => {
       emitter: emitter._id
     });
     await transaction.save();
+    //add  recuperer l'id du document save style/ const newDoc = await transaction.save newDoc._id
 
     // Mise à jour du solde en fonction du type de transaction
     if (["payment", "expense"].includes(req.body.type)) {
@@ -413,135 +414,78 @@ router.post("/createTransaction", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-
-
 // Exportation du routeur
+// module.exports = router;
+
+
+
+// Route pour recharger le solde et créer une transaction
+router.put('/transaction/reload2', async (req, res) => {
+  const { emitter, recipient, type, amount } = req.body;
+
+  if (!amount) {
+    return res.status(400).json({ error: 'Corps invalide' });
+  }
+ console.log(emitter)
+  // Recherche de l'utilisateur
+  const user = await User.findOne({token: emitter});//dans ce cas l'emitter est le token du user dans la bdd
+console.log(user)
+  // Calcul du nouveau solde
+  const newBalance = user.balance + Number(amount);
+
+  // Création de la transaction
+ const transaction = new Transaction({ emitter, recipient: `${emitter}`, type: 'reload', amount });
+  // const transaction = new Transaction({ emitter, recipient, type, amount });
+
+  // Mise à jour de la balance de l'utilisateur
+  await User.updateOne(
+    { token: emitter },
+    { $set: { balance: newBalance }, $push: { transactions: transaction._id } }
+  );
+
+  // Sauvegarde de la transaction dans la bdd transaction
+  await transaction.save();
+
+  // Réponse avec la transaction en json
+  res.json({ response: true, data: transaction });
+});
+
 module.exports = router;
 
-// // test de route Béranger:// Importation des modules nécessaires
-// var express = require("express");
-// var router = express.Router();
+// // Route pour recharger le solde et créer une transaction
+// router.put('/transaction/reload3',(req, res) => {
+//   const { emitter, recipient, type, amount } = req.body;
 
-// require("../models/connection");
-// const User = require("../models/users");
-// const Event = require("../models/events");
-// const Transaction = require("../models/transactions");
-
-// const { checkBody } = require("../modules/checkBody");
-
-// // Route pour créer une transaction et mettre à jour le solde de l'utilisateur
-// router.post("/createTransaction", async (req, res) => {
-//   // Vérification du corps de la requête
-//   if (!checkBody(req.body, ["emitter", "recipient", "type", "amount"])) {
-//     return res.status(400).json({ error: "Corps invalide" });
+//   if (!amount) {
+//     return res.status(400).json({ error: 'Corps invalide' });
 //   }
+//  console.log(emitter)
+//   // Recherche de l'utilisateur
+//   const user = User.findOne({token: emitter}).then(user=>{//dans ce cas l'emitter est le token du user dans la bdd
+//     // Calcul du nouveau solde
+//     const newBalance = user.balance + Number(amount);
 
-//   try {
-//     // Création de la transaction
-//     const transaction = new Transaction(req.body);
-//     await transaction.save();
+//   });
 
-//     // Mise à jour de l'utilisateur émetteur
-//     const emitter = await User.findById(req.body.emitter);
-//     if (!emitter) {
-//       throw new Error("Émetteur non trouvé");
-//     }
 
-//     // Mise à jour du solde en fonction du type de transaction
-//     if (["payment", "expense"].includes(req.body.type)) {
-//       if (emitter.balance < req.body.amount) {
-//         throw new Error("Fonds insuffisants");
-//       }
-//       emitter.balance -= Number(req.body.amount);
-//     } else if (["refund", "reload"].includes(req.body.type)) {
-//       emitter.balance += Number(req.body.amount);
-//     } else {
-//       throw new Error("Type de transaction invalide");
-//     }
+//   // Création de la transaction
+//  const transaction = new Transaction({ emitter, recipient: `${emitter}`, type: 'reload', amount });
+//   // const transaction = new Transaction({ emitter, recipient, type, amount });
 
-//     // Ajout de la transaction à l'utilisateur émetteur
-//     emitter.transactions.push(transaction._id);
-//     await emitter.save();
+//   // Mise à jour de la balance de l'utilisateur
+//    User.updateOne(
+//     { token: emitter },
+//     { $set: { balance: newBalance }, $push: { transactions: transaction._id } }
+//   );
 
-//     // Mise à jour de l'événement si nécessaire
-//     if (req.body.recipient) {
-//       const event = await Event.findById(req.body.recipient);
-//       if (event) {
-//         event.transactions.push(transaction._id);
-//         await event.save();
-//       }
-//     }
+//   // Sauvegarde de la transaction dans la bdd transaction
+//    transaction.save()
+//    .then(() =>{
+//     res.json({result: true, data: data})
+//    });
 
-//     // Renvoi de la réponse, => objet transaction
-//     res.json({ response: true, transaction });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// });
-
-// module.exports = router;
-// Importation des modules nécessaires
-// var express = require("express");
-// var router = express.Router();
-
-// require("../models/connection");
-// const User = require("../models/users");
-// const Event = require("../models/events");
-// const Transaction = require("../models/transactions");
-
-// const { checkBody } = require("../modules/checkBody");
-
-// // Route pour créer une transaction et mettre à jour le solde de l'utilisateur
-// router.post("/createTransaction", async (req, res) => {
-//   // Vérification du corps de la requête
-//   if (!checkBody(req.body, ["token", "recipient", "type", "amount"])) {
-//     return res.status(400).json({ error: "Corps invalide" });
-//   }
-
-//   try {
-//     // Retrouver l'utilisateur par son token
-//     const emitter = await User.findOne({ token: req.body.token });
-//     if (!emitter) {
-//       throw new Error("Utilisateur non trouvé");
-//     }
-
-//     // Création de la transaction
-//     const transaction = new Transaction({
-//       ...req.body,
-//       emitter: emitter._id
-//     });
-//     await transaction.save();
-
-//     // Mise à jour du solde en fonction du type de transaction
-//     if (["payment", "expense"].includes(req.body.type)) {
-//       if (emitter.balance < req.body.amount) {
-//         throw new Error("Fonds insuffisants");
-//       }
-//       emitter.balance -= Number(req.body.amount);
-//     } else if (["refund", "reload"].includes(req.body.type)) {
-//       emitter.balance += Number(req.body.amount);
-//     } else {
-//       throw new Error("Type de transaction invalide");
-//     }
-
-//     // Ajout de la transaction à l'utilisateur émetteur
-//     emitter.transactions.push(transaction._id);
-//     await emitter.save();
-
-//     // Mise à jour de l'événement si nécessaire
-//     if (req.body.recipient) {
-//       const event = await Event.findById(req.body.recipient);
-//       if (event) {
-//         event.transactions.push(transaction._id);
-//         await event.save();
-//       }
-//     }
-
-//     // Renvoi de la réponse
-//     res.json({ response: true, transaction });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
+//   // Réponse avec la transaction en json
+//   res.json({ response: true, data: transaction });
 // });
 
 // module.exports = router;
