@@ -42,22 +42,20 @@ router.post("/create/reload", (req, res) => {
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
   transaction.save().then(() => {
-    // Recherche de l'utilisateur
-    User.findById(req.body.emitter).then((user) => {
+    // Mise à jour du solde de l'utilisateur et ajout de la transaction
+    User.findByIdAndUpdate(req.body.emitter, {
+      $inc: { balance: Number(req.body.amount) },
+      $push: { transactions: transaction._id }
+    }, { new: true }).then((user) => {
       // Vérification de l'existence de l'utilisateur
       if (!user) {
         return res.status(400).json({ error: "Utilisateur non trouvé" });
       }
-      // Mise à jour du solde de l'utilisateur
-      user.balance += Number(req.body.amount);
       // Vérification du solde
       if (user.balance < 0) {
         return res.status(400).json({ error: "Fonds insuffisants" });
       }
-      // Ajout de la transaction à l'utilisateur
-      user.transactions.push(transaction._id);
-      // Sauvegarde de l'utilisateur
-      user.save().then(() => res.json({ response: true, transaction }));
+      res.json({ response: true, transaction });
     });
   });
 });
@@ -65,43 +63,27 @@ router.post("/create/reload", (req, res) => {
 // Route pour créer un paiement
 router.post("/create/payment", (req, res) => {
   // Vérification du corps de la requête
-  if (
-    !checkBody(req.body, ["emitter", "name", "amount", "recipient", "type"])
-  ) {
+  if (!checkBody(req.body, ["emitter", "name", "amount", "recipient", "type"])) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
   transaction.save().then(() => {
-    // Recherche de l'utilisateur
-    User.findById(req.body.emitter).then((user) => {
+    // Mise à jour du solde de l'utilisateur et ajout de la transaction
+    User.findByIdAndUpdate(req.body.emitter, {
+      $inc: { balance: -Number(req.body.amount) },
+      $push: { transactions: transaction._id }
+    }, { new: true }).then((user) => {
       // Vérification de l'existence de l'utilisateur
       if (!user) {
         return res.status(400).json({ error: "Utilisateur non trouvé" });
       }
       // Vérification du solde
-      if (user.balance < Number(req.body.amount)) {
+      if (user.balance < 0) {
         return res.status(400).json({ error: "Fonds insuffisants" });
       }
-      // Mise à jour du solde de l'utilisateur
-      user.balance -= Number(req.body.amount);
-      // Ajout de la transaction à l'utilisateur
-      user.transactions.push(transaction._id);
-      // Sauvegarde de l'utilisateur
-      user.save().then(() => {
-        // Recherche de l'événement
-        Event.findById(req.body.recipient).then((event) => {
-          // Vérification de l'existence de l'événement
-          if (!event) {
-            return res.status(400).json({ error: "Événement non trouvé" });
-          }
-          // Ajout de la transaction à l'événement
-          event.transactions.push(transaction._id);
-          // Sauvegarde de l'événement
-          event.save().then(() => res.json({ response: true, transaction }));
-        });
-      });
+      res.json({ response: true, transaction });
     });
   });
 });
@@ -128,21 +110,12 @@ router.post("/create/refund", (req, res) => {
       }
       // Calcul du montant par part
       const perShareAmount = Number(event.totalSum || 0) / event.shareAmount;
-      // Mise à jour du solde de chaque invité
+      // Mise à jour du solde de chaque invité et ajout de la transaction
       let promises = event.guests.map((guest) => {
-        return User.findById(guest.userId).then((user) => {
-          // Vérification de l'existence de l'utilisateur
-          if (!user) {
-            console.log("Utilisateur avec ID ${guest.userId} non trouvé");
-            return;
-          }
-          // Mise à jour du solde de l'utilisateur
-          user.balance += perShareAmount * guest.share;
-          // Ajout de la transaction à l'utilisateur
-          user.transactions.push(transaction._id);
-          // Sauvegarde de l'utilisateur
-          return user.save();
-        });
+        return User.findByIdAndUpdate(guest.userId, {
+          $inc: { balance: perShareAmount * guest.share },
+          $push: { transactions: transaction._id }
+        }, { new: true });
       });
       // Mise à jour de l'événement après le remboursement
       Promise.all(promises).then(() => {
@@ -170,22 +143,20 @@ router.post("/create/expense", (req, res) => {
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
   transaction.save().then(() => {
-    // Recherche de l'événement
-    Event.findById(req.body.emitter).then((event) => {
+    // Mise à jour du solde de l'événement et ajout de la transaction
+    Event.findByIdAndUpdate(req.body.emitter, {
+      $inc: { totalSum: -Number(req.body.amount) },
+      $push: { transactions: transaction._id }
+    }, { new: true }).then((event) => {
       // Vérification de l'existence de l'événement
       if (!event) {
         return res.status(400).json({ error: "Événement non trouvé" });
       }
       // Vérification du solde de l'événement
-      if (event.totalSum < Number(req.body.amount)) {
+      if (event.totalSum < 0) {
         return res.status(400).json({ error: "Fonds insuffisants" });
       }
-      // Mise à jour du solde de l'événement
-      event.totalSum -= Number(req.body.amount);
-      // Ajout de la transaction à l'événement
-      event.transactions.push(transaction._id);
-      // Sauvegarde de l'événement
-      event.save().then(() => res.json({ response: true, transaction }));
+      res.json({ response: true, transaction });
     });
   });
 });
