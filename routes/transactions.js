@@ -206,7 +206,7 @@ router.get("/:transactionId", async (req, res) => {
   }
 });
 
-//Route pour modifier/créer la transaction et modifier le statut du paiment de l'utilisateur en test sur EventScreen
+//Route pour créer un paient sur un évènement, ajouter la transaction dans la BDD (collections transactions et user), modifier statut du paiment de l'utilisateur sur EventScreen
 router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   const userCall = await User.findOne({ token: req.params.token });
   const eventCall = await Event.findOne({
@@ -239,15 +239,15 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   );
   if (isSamePerson) {
     const userDue = shareAmountPerGuest * isSamePerson.share;
-    // Création de la transaction
     if (user.balance < Number(userDue)) {
       res.json({ result: false, error: "Veuillez recharger votre compte" });
       return;
     }
-    const newUserBalance = user.balance - Number(userDue);
+    const balanceSetForUser = user.balance - Number(userDue);
+    // Création de la transaction
     const userPayment = new Transaction({
       amount: userDue,
-      date: new Date(),
+      //date: new Date(),
       type: req.body.type,
       eventId: event._id,
       emitter: user.token,
@@ -282,9 +282,10 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
       { _id: user._id },
       {
         $push: { transactions: userPayment._id },
-        $set: { balance: newUserBalance },
+        $set: { balance: balanceSetForUser },
       }
     );
+    // .then(console.log("Updated User:", user));
   }
 });
 
