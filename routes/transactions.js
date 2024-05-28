@@ -253,12 +253,13 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   if (isSamePerson) {
     // Création de la transaction
     const userPayment = new Transaction({
+      amount: shareAmountPerGuest * isSamePerson.share,
+      date: new Date(),
       type: req.body.type,
       eventId: event._id,
       emitter: user.token,
       recipient: event.eventUniqueId,
       name: event.name,
-      amount: shareAmountPerGuest * isSamePerson.share,
     });
     // Sauvegarde de la transaction
     userPayment.save().then((transactionSaved) => {
@@ -336,7 +337,20 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   // });
 });
 
-// Exportation du routeur
+const transactionSchema = mongoose.Schema({
+  amount: Number,
+  date: Date,
+  invoice: String,
+  type: {
+    type: String,
+    enum: ["refund", "payment", "reload", "expense"],
+  },
+  eventId: { type: mongoose.Schema.Types.ObjectId, ref: "events" },
+  emitter: String,
+  recipient: String,
+  name: String,
+  category: String,
+});
 
 // Exportation du routeur
 module.exports = router;
