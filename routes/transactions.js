@@ -237,28 +237,22 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   const isSamePerson = event.guests.find(
     (guest) => String(guest.userId._id) === String(user._id)
   );
-  // console.log("résultat du find pour création payment", isSamePerson);
-  //   {
-  //   userId: {
-  //     _id: new ObjectId('664cb32590817b04a47bd457'),
-  //     firstName: 'Paloma',
-  //     email: 'test@gmail.com'
-  //   },
-  //   email: 'test@gmail.com',
-  //   share: 1,
-  //   hasPaid: false,
-  //   _id: new ObjectId('665084c25b8edd087301f5ae')
-  // }
-
   if (isSamePerson) {
+    const userDue = shareAmountPerGuest * isSamePerson.share;
     // Création de la transaction
+    if (user.balance < Number(userDue)) {
+      res.json({ result: false, error: "Veuillez recharger votre compte" });
+      return;
+    }
+    const newUserBalance = user.balance - Number(userDue);
     const userPayment = new Transaction({
+      amount: userDue,
+      date: new Date(),
       type: req.body.type,
       eventId: event._id,
       emitter: user.token,
       recipient: event.eventUniqueId,
       name: event.name,
-      amount: shareAmountPerGuest * isSamePerson.share,
     });
     // Sauvegarde de la transaction
     userPayment.save().then((transactionSaved) => {
@@ -272,71 +266,27 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
         "guests.userId": isSamePerson.userId._id,
       },
       { $set: { "guests.$.hasPaid": true } }
-    ).then(() => {
-      return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
-        (updatedEvent) => {
-          const updatedGuest = updatedEvent.guests.find(
-            (guest) => String(guest.userId) === String(isSamePerson.userId._id)
-          );
-          //console.log("Updated guest's hasPaid status:", updatedGuest.hasPaid);
-        }
-      );
-    });
+    );
+    // .then(() => {
+    //   return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
+    //     (updatedEvent) => {
+    //       const updatedGuest = updatedEvent.guests.find(
+    //         (guest) => String(guest.userId) === String(isSamePerson.userId._id)
+    //       );
+    //       console.log("Updated guest's hasPaid status:", updatedGuest.hasPaid);
+    //     }
+    //   );
+    // });
+
+    User.updateOne(
+      { _id: user._id },
+      {
+        $push: { transactions: userPayment._id },
+        $set: { balance: newUserBalance },
+      }
+    );
   }
-  //
-  //
-  //
-  //
-  //
-  //
-  // User.findOne({ token: req.params.token }).then((user) => {
-  //   //console.log("test de ce que renvoie user pour create/payment", user);
-  //   if (!user) {
-  //     res.json({ result: false, error: "Compte utilisateur non trouvé" });
-  //     return;
-  //   }
-
-  //   Event.findOne({ eventUniqueId: req.params.eventUniqueId })
-  //     .populate("guests.userId", [
-  //       "userId",
-  //       "firstName",
-  //       "email",
-  //       "share",
-  //       "hasPaid",
-  //     ])
-  //     .populate("transactions")
-  //     .then((event) => {
-  //       //console.log("event dans route transactions/create/payment:", event);
-  //       const shareAmountPerGuest = event.totalSum / event.shareAmount;
-  //       console.log(user);
-  //       const isWellGuest = event.guests.find(
-  //         (guest) => String(guest.userId._id) === String(user._id)
-  //       );
-
-  //       console.log({ isWellGuest });
-
-  //       // TODO Renommer variable
-  //       if (isWellGuest) {
-  //         // Création de la transaction
-  //         const userPayment = new Transaction({
-  //           type: req.body.type,
-  //           eventId: event._id,
-  //           emitter: user.token,
-  //           recipient: event.eventUniqueId,
-  //           name: event.name,
-  //           amount: shareAmountPerGuest * isWellGuest.share,
-  //           hasPaid: true,
-  //         });
-  //         // Sauvegarde de la transaction
-  //         userPayment.save().then((transactionSaved) => {
-  //           console.log("test de ce que renvoie userPayment", transactionSaved);
-  //         });
-  //       }
-  //     });
-  // });
 });
-
-// Exportation du routeur
 
 // Exportation du routeur
 module.exports = router;
