@@ -9,6 +9,29 @@ const Transaction = require("../models/transactions");
 
 const { checkBody } = require("../modules/checkBody");
 
+// Route pour obtenir les transactions de type expense d'un événement
+router.get("/expenses/:eventId", async (req, res) => {
+  try {
+    // Recherche de l'événement
+    const event = await Event.findById(req.params.eventId).populate(
+      "transactions"
+    );
+    // Vérification de l'existence de l'événement
+    if (!event) {
+      return res.json({ response: false, error: "Événement non trouvé" });
+    }
+    // Filtrage des transactions de type expense
+    const expenses = event.transactions.filter(
+      (transaction) => transaction.type === "expense"
+    );
+    // Renvoi des transactions de type expense
+    res.json({ response: true, expenses });
+  } catch (error) {
+    // Gestion des erreurs
+    res.json({ response: false, error: error.message });
+  }
+});
+
 // Route pour le rechargement du solde d'un utilisateur
 router.post("/create/reload", (req, res) => {
   // Vérification du corps de la requête
