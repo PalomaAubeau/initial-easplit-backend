@@ -283,5 +283,95 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   }
 });
 
-// Exportation du routeur
+//TEST//
+
+
+// Route pour recharger le solde et créer une transaction
+router.put('/transaction/reload2', async (req, res) => {
+  const { emitter, recipient, type, amount } = req.body;
+
+  // Vérification complète des paramètres de la requête
+  if (!emitter || !amount) {
+    console.log('Requête invalide :', req.body); // Log des données reçues pour le débogage
+    return res.status(400).json({ error: 'Corps invalide' });
+  }
+
+  try {
+    // Ajout d'un log pour vérifier l'émetteur reçu
+    console.log('Emetteur reçu:', emitter);
+
+    // Recherche de l'utilisateur
+    const user = await User.findOne({ token: emitter });
+
+    // Ajout d'un log pour vérifier l'utilisateur trouvé
+    if (!user) {
+      console.log('Utilisateur non trouvé pour le token:', emitter);
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    } else {
+      console.log('Utilisateur trouvé:', user);
+    }
+
+    // Calcul du nouveau solde
+    const newBalance = user.balance + Number(amount);
+
+    // Création de la transaction
+    const transaction = new Transaction({ emitter, recipient: `${emitter}`, type: 'reload', amount });
+
+    // Mise à jour de la balance de l'utilisateur
+    await User.updateOne(
+      { token: emitter },
+      { $set: { balance: newBalance }, $push: { transactions: transaction._id } }
+    );
+
+    // Sauvegarde de la transaction dans la base de données
+    await transaction.save();
+
+    // Réponse avec la transaction en json
+    res.json({ response: true, data : transaction });
+  } catch (error) {
+    console.error('Erreur dans /transaction/reload2:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// module.exports = router;
+
 module.exports = router;
+
+// // Route pour recharger le solde et créer une transaction
+// router.put('/transaction/reload3',(req, res) => {
+//   const { emitter, recipient, type, amount } = req.body;
+
+//   if (!amount) {
+//     return res.status(400).json({ error: 'Corps invalide' });
+//   }
+//  console.log(emitter)
+//   // Recherche de l'utilisateur
+//   const user = User.findOne({token: emitter}).then(user=>{//dans ce cas l'emitter est le token du user dans la bdd
+//     // Calcul du nouveau solde
+//     const newBalance = user.balance + Number(amount);
+
+//   });
+
+
+//   // Création de la transaction
+//  const transaction = new Transaction({ emitter, recipient: `${emitter}`, type: 'reload', amount });
+//   // const transaction = new Transaction({ emitter, recipient, type, amount });
+
+//   // Mise à jour de la balance de l'utilisateur
+//    User.updateOne(
+//     { token: emitter },
+//     { $set: { balance: newBalance }, $push: { transactions: transaction._id } }
+//   );
+
+//   // Sauvegarde de la transaction dans la bdd transaction
+//    transaction.save()
+//    .then(() =>{
+//     res.json({result: true, data: data})
+//    });
+
+//   // Réponse avec la transaction en json
+//   res.json({ response: true, data: transaction });
+// });
+
+// module.exports = router;
