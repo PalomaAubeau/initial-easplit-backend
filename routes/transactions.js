@@ -267,28 +267,24 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
       name: event.name,
     });
     // Sauvegarde de la transaction
-    userPayment.save().then((transactionSaved) => {
+    userPayment.save().then(async (transactionSaved) => {
+      await Event.updateOne(
+        {
+          eventUniqueId: event.eventUniqueId,
+          "guests.userId": isSamePerson.userId._id,
+        },
+        { $set: { "guests.$.hasPaid": true } }
+      );
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $push: { transactions: userPayment._id },
+          $set: { balance: balanceSetForUser },
+        }
+      );
       // console.log("test de ce que renvoie userPayment", transactionSaved);
       res.json({ result: true, transactionSaved });
     });
-
-    Event.updateOne(
-      {
-        eventUniqueId: event.eventUniqueId,
-        "guests.userId": isSamePerson.userId._id,
-      },
-      { $set: { "guests.$.hasPaid": true } }
-    );
-    //.then(console.log("Updated User:", event));
-
-    User.updateOne(
-      { _id: user._id },
-      {
-        $push: { transactions: userPayment._id },
-        $set: { balance: balanceSetForUser },
-      }
-    );
-    // .then(console.log("Updated User:", user));
   }
 });
 
