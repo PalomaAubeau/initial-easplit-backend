@@ -280,16 +280,6 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
       { $set: { "guests.$.hasPaid": true } }
     );
     //.then(console.log("Updated User:", event));
-    // .then(() => {
-    //   return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
-    //     (updatedEvent) => {
-    //       const updatedGuest = updatedEvent.guests.find(
-    //         (guest) => String(guest.userId) === String(isSamePerson.userId._id)
-    //       );
-    //       console.log("Updated guest's hasPaid status:", updatedGuest.hasPaid);
-    //     }
-    //   );
-    // });
 
     User.updateOne(
       { _id: user._id },
@@ -305,9 +295,9 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
 //TEST//
 
 // Route pour recharger le solde et créer une transaction
-router.put('/reload/:token', async (req, res) => {
+router.put("/reload/:token", async (req, res) => {
   const { emitter, recipient, type, amount } = req.body;
-console.log(req.body)
+  console.log(req.body);
   // Vérification complète des paramètres de la requête
   if (!emitter || !amount) {
     console.log("Requête invalide :", req.body); // Log des données reçues pour le débogage
