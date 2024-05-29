@@ -305,9 +305,9 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
 //TEST//
 
 // Route pour recharger le solde et créer une transaction
-router.put("/transaction/reload2", async (req, res) => {
+router.put('/reload/:token', async (req, res) => {
   const { emitter, recipient, type, amount } = req.body;
-
+console.log(req.body)
   // Vérification complète des paramètres de la requête
   if (!emitter || !amount) {
     console.log("Requête invalide :", req.body); // Log des données reçues pour le débogage
