@@ -278,7 +278,8 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
         "guests.userId": isSamePerson.userId._id,
       },
       { $set: { "guests.$.hasPaid": true } }
-    ).then(console.log("Updated User:", event));
+    );
+    //.then(console.log("Updated User:", event));
     // .then(() => {
     //   return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
     //     (updatedEvent) => {

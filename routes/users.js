@@ -165,31 +165,29 @@ router.post("/invite", (req, res) => {
   const email = req.body.email.toLowerCase();
 
   // On vérifie si l'utilisateur existe déjà
-  User.findOne({ email: email }).then(
-    (data) => {
-      // Si l'utilisateur n'existe pas, on le crée
-      if (data === null) {
-        const newUser = new User({
-          email: email,
-          events: [req.body.eventId],
-        });
-        // On sauvegarde le nouvel utilisateur
-        newUser.save().then((newDoc) => {
-          // On ajoute l'utilisateur en tant qu'invité à l'événement
-          addUserToGuest(newDoc, req.body.eventId, res);
-        });
-      } else {
-        // Si l'utilisateur existe déjà, on ajoute l'événement à son compte
-        if (!data.events.includes(req.body.eventId)) {
-          data.events.push(req.body.eventId);
-        }
-        data.save().then((updatedDoc) => {
-          // On ajoute l'utilisateur en tant qu'invité à l'événement
-          addUserToGuest(updatedDoc, req.body.eventId, res);
-        });
+  User.findOne({ email: email }).then((data) => {
+    // Si l'utilisateur n'existe pas, on le crée
+    if (data === null) {
+      const newUser = new User({
+        email: email,
+        events: [req.body.eventId],
+      });
+      // On sauvegarde le nouvel utilisateur
+      newUser.save().then((newDoc) => {
+        // On ajoute l'utilisateur en tant qu'invité à l'événement
+        addUserToGuest(newDoc, req.body.eventId, res);
+      });
+    } else {
+      // Si l'utilisateur existe déjà, on ajoute l'événement à son compte
+      if (!data.events.includes(req.body.eventId)) {
+        data.events.push(req.body.eventId);
       }
+      data.save().then((updatedDoc) => {
+        // On ajoute l'utilisateur en tant qu'invité à l'événement
+        addUserToGuest(updatedDoc, req.body.eventId, res);
+      });
     }
-  );
+  });
 });
 
 // Route qui va créer un nouvel utilisateur
@@ -205,58 +203,56 @@ router.post("/signup", (req, res) => {
   const email = req.body.email.toLowerCase();
 
   // On cherche un utilisateur avec le même email
-  User.findOne({ email: email }).then(
-    (data) => {
-      if (data !== null && data.password && data.firstName && data.lastName) {
-        // Si un utilisateur est trouvé avec non-empty password, firstName, and lastName, on renvoie une erreur
-        res.json({ result: false, error: "Compte déjà existant" });
-      } else {
-        // Si aucun utilisateur n'est trouvé, or the user has empty password, firstName, or lastName, on crée un nouvel utilisateur
-        const hash = bcrypt.hashSync(req.body.password, 10);
-        const updatedUser = {
-          firstName: req.body.firstName,
-          lastName: req.body.lastName,
-          email: email,
-          balance: 0,
-          password: hash,
-          token: uid2(32),
-          events: data && data.events ? data.events : [],
-        };
+  User.findOne({ email: email }).then((data) => {
+    if (data !== null && data.password && data.firstName && data.lastName) {
+      // Si un utilisateur est trouvé avec non-empty password, firstName, and lastName, on renvoie une erreur
+      res.json({ result: false, error: "Compte déjà existant" });
+    } else {
+      // Si aucun utilisateur n'est trouvé, or the user has empty password, firstName, or lastName, on crée un nouvel utilisateur
+      const hash = bcrypt.hashSync(req.body.password, 10);
+      const updatedUser = {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        email: email,
+        balance: 0,
+        password: hash,
+        token: uid2(32),
+        events: data && data.events ? data.events : [], // Vérifier que ça ne crée pas d'erreur  avec events: data && data.events ? data.events : [], ou s'il faut modifier
+      };
 
-        // On met à jour l'utilisateur s'il existe déjà, sinon on le crée
-        if (data !== null) {
-          User.updateOne({ _id: data._id }, updatedUser).then(() => {
-            // Une fois l'utilisateur mis à jour, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({
-              result: true,
-              data: {
-                token: updatedUser.token,
-                email: updatedUser.email,
-                firstName: updatedUser.firstName,
-                balance: updatedUser.balance,
-              },
-            });
+      // On met à jour l'utilisateur s'il existe déjà, sinon on le crée
+      if (data !== null) {
+        User.updateOne({ _id: data._id }, updatedUser).then(() => {
+          // Une fois l'utilisateur mis à jour, on renvoie un résultat positif et le token de l'utilisateur
+          res.json({
+            result: true,
+            data: {
+              token: updatedUser.token,
+              email: updatedUser.email,
+              firstName: updatedUser.firstName,
+              balance: updatedUser.balance,
+            },
           });
-        } else {
-          // On crée un nouvel utilisateur
-          const newUser = new User(updatedUser);
-          newUser.save().then((newDoc) => {
-            // Une fois l'utilisateur créé, on renvoie un résultat positif et le token de l'utilisateur
-            res.json({
-              result: true,
-              data: {
-                token: newDoc.token,
-                email: newDoc.email,
-                firstName: newDoc.firstName,
-                balance: newDoc.balance,
-                userId: newDoc._id,
-              },
-            });
+        });
+      } else {
+        // On crée un nouvel utilisateur
+        const newUser = new User(updatedUser);
+        newUser.save().then((newDoc) => {
+          // Une fois l'utilisateur créé, on renvoie un résultat positif et le token de l'utilisateur
+          res.json({
+            result: true,
+            data: {
+              token: newDoc.token,
+              email: newDoc.email,
+              firstName: newDoc.firstName,
+              balance: newDoc.balance,
+              userId: newDoc._id,
+            },
           });
-        }
+        });
       }
     }
-  );
+  });
 });
 // route pour le login
 router.post("/signin", (req, res) => {
@@ -282,8 +278,7 @@ router.post("/signin", (req, res) => {
             email: data.email,
             firstName: data.firstName,
             balance: data.balance,
-            // userId: data._id,// supprimé avec raida le matin 
-          
+            // userId: data._id,// supprimé avec raida le matin
           });
         });
         // Si l'utilisateur n'est pas trouvé ou que le mot de passe ne correspond pas
@@ -370,46 +365,43 @@ router.get("/event/:id", (req, res) => {
     });
 });
 
-
-router.put('/balance/:token', async (req, res) => {
+router.put("/balance/:token", async (req, res) => {
   try {
     const { token } = req.params;
     const { balance } = req.body;
 
     const user = await User.findOne({ token: token });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    await User.updateOne({ token: token }, { $inc: { balance: parseFloat(balance) } });
+    await User.updateOne(
+      { token: token },
+      { $inc: { balance: parseFloat(balance) } }
+    );
 
-    res.json({ message: 'User balance updated', user });
+    res.json({ message: "User balance updated", user });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-router.get('/getbalance/:token', async (req, res) => {
+router.get("/getbalance/:token", async (req, res) => {
   try {
-  
     const token = req.params.token;
 
     const user = await User.findOne({ token: token });
 
     if (user) {
-     
       res.json({ balance: user.balance });
     } else {
-    
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
-    
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // // Route pour mettre à jour le solde du participant
 // router.put("/user/:id/transaction", (req, res) => {
