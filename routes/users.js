@@ -371,24 +371,24 @@ router.get("/event/:id", (req, res) => {
 });
 
 
-router.put('/balance/:token', async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { balance } = req.body;
+// router.put('/balance/:token', async (req, res) => {
+//   try {
+//     const { token } = req.params;
+//     const { balance } = req.body;
 
-    const user = await User.findOne({ token: token });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+//     const user = await User.findOne({ token: token });
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
 
-    await User.updateOne({ token: token }, { $inc: { balance: parseFloat(balance) } });
+//     await User.updateOne({ token: token }, { $inc: { balance: parseFloat(balance) } });
 
-    res.json({ message: 'User balance updated', user });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+//     res.json({ message: 'User balance updated', user });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// });
 
 router.get('/getbalance/:token', async (req, res) => {
   try {
