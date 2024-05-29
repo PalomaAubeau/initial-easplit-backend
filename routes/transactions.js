@@ -267,46 +267,33 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
       name: event.name,
     });
     // Sauvegarde de la transaction
-    userPayment.save().then((transactionSaved) => {
+    userPayment.save().then(async (transactionSaved) => {
+      await Event.updateOne(
+        {
+          eventUniqueId: event.eventUniqueId,
+          "guests.userId": isSamePerson.userId._id,
+        },
+        { $set: { "guests.$.hasPaid": true } }
+      );
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $push: { transactions: userPayment._id },
+          $set: { balance: balanceSetForUser },
+        }
+      );
       // console.log("test de ce que renvoie userPayment", transactionSaved);
       res.json({ result: true, transactionSaved });
     });
-
-    Event.updateOne(
-      {
-        eventUniqueId: event.eventUniqueId,
-        "guests.userId": isSamePerson.userId._id,
-      },
-      { $set: { "guests.$.hasPaid": true } }
-    ).then(console.log("Updated User:", event));
-    // .then(() => {
-    //   return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
-    //     (updatedEvent) => {
-    //       const updatedGuest = updatedEvent.guests.find(
-    //         (guest) => String(guest.userId) === String(isSamePerson.userId._id)
-    //       );
-    //       console.log("Updated guest's hasPaid status:", updatedGuest.hasPaid);
-    //     }
-    //   );
-    // });
-
-    User.updateOne(
-      { _id: user._id },
-      {
-        $push: { transactions: userPayment._id },
-        $set: { balance: balanceSetForUser },
-      }
-    );
-    // .then(console.log("Updated User:", user));
   }
 });
 
 //TEST//
 
 // Route pour recharger le solde et créer une transaction
-router.put('/reload/:token', async (req, res) => {
+router.put("/reload/:token", async (req, res) => {
   const { emitter, recipient, type, amount } = req.body;
-console.log(req.body)
+  console.log(req.body);
   // Vérification complète des paramètres de la requête
   if (!emitter || !amount) {
     console.log("Requête invalide :", req.body); // Log des données reçues pour le débogage
