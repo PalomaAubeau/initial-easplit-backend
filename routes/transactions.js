@@ -43,10 +43,14 @@ router.post("/create/reload", (req, res) => {
   // Sauvegarde de la transaction
   transaction.save().then(() => {
     // Mise à jour du solde de l'utilisateur et ajout de la transaction
-    User.findByIdAndUpdate(req.body.emitter, {
-      $inc: { balance: Number(req.body.amount) },
-      $push: { transactions: transaction._id }
-    }, { new: true }).then((user) => {
+    User.findByIdAndUpdate(
+      req.body.emitter,
+      {
+        $inc: { balance: Number(req.body.amount) },
+        $push: { transactions: transaction._id },
+      },
+      { new: true }
+    ).then((user) => {
       // Vérification de l'existence de l'utilisateur
       if (!user) {
         return res.status(400).json({ error: "Utilisateur non trouvé" });
@@ -63,7 +67,9 @@ router.post("/create/reload", (req, res) => {
 // Route pour créer un paiement
 router.post("/create/payment", (req, res) => {
   // Vérification du corps de la requête
-  if (!checkBody(req.body, ["emitter", "name", "amount", "recipient", "type"])) {
+  if (
+    !checkBody(req.body, ["emitter", "name", "amount", "recipient", "type"])
+  ) {
     return res.status(400).json({ error: "Corps invalide" });
   }
   // Création de la transaction
@@ -71,10 +77,14 @@ router.post("/create/payment", (req, res) => {
   // Sauvegarde de la transaction
   transaction.save().then(() => {
     // Mise à jour du solde de l'utilisateur et ajout de la transaction
-    User.findByIdAndUpdate(req.body.emitter, {
-      $inc: { balance: -Number(req.body.amount) },
-      $push: { transactions: transaction._id }
-    }, { new: true }).then((user) => {
+    User.findByIdAndUpdate(
+      req.body.emitter,
+      {
+        $inc: { balance: -Number(req.body.amount) },
+        $push: { transactions: transaction._id },
+      },
+      { new: true }
+    ).then((user) => {
       // Vérification de l'existence de l'utilisateur
       if (!user) {
         return res.status(400).json({ error: "Utilisateur non trouvé" });
@@ -112,10 +122,14 @@ router.post("/create/refund", (req, res) => {
       const perShareAmount = Number(event.totalSum || 0) / event.shareAmount;
       // Mise à jour du solde de chaque invité et ajout de la transaction
       let promises = event.guests.map((guest) => {
-        return User.findByIdAndUpdate(guest.userId, {
-          $inc: { balance: perShareAmount * guest.share },
-          $push: { transactions: transaction._id }
-        }, { new: true });
+        return User.findByIdAndUpdate(
+          guest.userId,
+          {
+            $inc: { balance: perShareAmount * guest.share },
+            $push: { transactions: transaction._id },
+          },
+          { new: true }
+        );
       });
       // Mise à jour de l'événement après le remboursement
       Promise.all(promises).then(() => {
@@ -144,10 +158,14 @@ router.post("/create/expense", (req, res) => {
   // Sauvegarde de la transaction
   transaction.save().then(() => {
     // Mise à jour du solde de l'événement et ajout de la transaction
-    Event.findByIdAndUpdate(req.body.emitter, {
-      $inc: { totalSum: -Number(req.body.amount) },
-      $push: { transactions: transaction._id }
-    }, { new: true }).then((event) => {
+    Event.findByIdAndUpdate(
+      req.body.emitter,
+      {
+        $inc: { totalSum: -Number(req.body.amount) },
+        $push: { transactions: transaction._id },
+      },
+      { new: true }
+    ).then((event) => {
       // Vérification de l'existence de l'événement
       if (!event) {
         return res.status(400).json({ error: "Événement non trouvé" });
@@ -244,8 +262,8 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
       //date: new Date(),
       type: req.body.type,
       eventId: event._id,
-      emitter: user.token,
-      recipient: event.eventUniqueId,
+      emitter: user._id,
+      recipient: event._id,
       name: event.name,
     });
     // Sauvegarde de la transaction
@@ -260,7 +278,7 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
         "guests.userId": isSamePerson.userId._id,
       },
       { $set: { "guests.$.hasPaid": true } }
-    );
+    ).then(console.log("Updated User:", event));
     // .then(() => {
     //   return Event.findOne({ eventUniqueId: event.eventUniqueId }).then(
     //     (updatedEvent) => {
@@ -285,52 +303,59 @@ router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
 
 //TEST//
 
-
 // Route pour recharger le solde et créer une transaction
 router.put('/reload/:token', async (req, res) => {
   const { emitter, recipient, type, amount } = req.body;
 console.log(req.body)
   // Vérification complète des paramètres de la requête
   if (!emitter || !amount) {
-    console.log('Requête invalide :', req.body); // Log des données reçues pour le débogage
-    return res.status(400).json({ error: 'Corps invalide' });
+    console.log("Requête invalide :", req.body); // Log des données reçues pour le débogage
+    return res.status(400).json({ error: "Corps invalide" });
   }
 
   try {
     // Ajout d'un log pour vérifier l'émetteur reçu
-    console.log('Emetteur reçu:', emitter);
+    console.log("Emetteur reçu:", emitter);
 
     // Recherche de l'utilisateur
     const user = await User.findOne({ token: emitter });
 
     // Ajout d'un log pour vérifier l'utilisateur trouvé
     if (!user) {
-      console.log('Utilisateur non trouvé pour le token:', emitter);
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      console.log("Utilisateur non trouvé pour le token:", emitter);
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
     } else {
-      console.log('Utilisateur trouvé:', user);
+      console.log("Utilisateur trouvé:", user);
     }
 
     // Calcul du nouveau solde
     const newBalance = user.balance + Number(amount);
 
     // Création de la transaction
-    const transaction = new Transaction({ emitter, recipient: `${emitter}`, type: 'reload', amount });
+    const transaction = new Transaction({
+      emitter,
+      recipient: `${emitter}`,
+      type: "reload",
+      amount,
+    });
 
     // Mise à jour de la balance de l'utilisateur
     await User.updateOne(
       { token: emitter },
-      { $set: { balance: newBalance }, $push: { transactions: transaction._id } }
+      {
+        $set: { balance: newBalance },
+        $push: { transactions: transaction._id },
+      }
     );
 
     // Sauvegarde de la transaction dans la base de données
     await transaction.save();
 
     // Réponse avec la transaction en json
-    res.json({ response: true, data : transaction });
+    res.json({ response: true, data: transaction });
   } catch (error) {
-    console.error('Erreur dans /transaction/reload2:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error("Erreur dans /transaction/reload2:", error);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
@@ -352,7 +377,6 @@ module.exports = router;
 //     const newBalance = user.balance + Number(amount);
 
 //   });
-
 
 //   // Création de la transaction
 //  const transaction = new Transaction({ emitter, recipient: `${emitter}`, type: 'reload', amount });
