@@ -11,6 +11,9 @@ const Transaction = require("../models/transactions");
 const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
+const cloudinary = require("cloudinary").v2;
+const uniqid = require("uniqid");
+const fs = require("fs");
 
 const { addUserToGuest } = require("./users");
 
@@ -176,6 +179,23 @@ router.get("/user-events/:token", (req, res) => {
       }
       res.json({ result: true, events: user.events });
     });
+});
+
+//Route pour upload les fichiers
+
+router.post("/upload", async (req, res) => {
+  const photoPath = `./tmp/${uniqid()}.jpg`;
+  const resultMove = await req.files.photoFromFront.mv(photoPath);
+
+  if (!resultMove) {
+    const resultCloudinary = await cloudinary.uploader.upload(photoPath);
+        res.json({ result: true, url: resultCloudinary.secure_url });
+        console.log(resultCloudinary.secure_url);
+  } else {
+        res.json({ result: false, error: resultMove });
+  }
+    console.log(photoPath + "consoleLogduPhotPath");
+  fs.unlinkSync(photoPath);
 });
 
 module.exports = router;
