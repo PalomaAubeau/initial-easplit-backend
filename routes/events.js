@@ -182,20 +182,27 @@ router.get("/user-events/:token", (req, res) => {
 });
 
 //Route pour upload les fichiers
-
+//route test beranger
 router.post("/upload", async (req, res) => {
-  const photoPath = `./tmp/${uniqid()}.jpg`;
-  const resultMove = await req.files.photoFromFront.mv(photoPath);
+  try {
+    if (!req.files || !req.files.photoFromFront) {
+      return res.status(400).json({ result: false, error: "No file uploaded" });
+    }
 
-  if (!resultMove) {
+    const photoPath = `./tmp/${uniqid()}.jpg`;
+    await req.files.photoFromFront.mv(photoPath);
+
     const resultCloudinary = await cloudinary.uploader.upload(photoPath);
-        res.json({ result: true, url: resultCloudinary.secure_url });
-        console.log(resultCloudinary.secure_url);
-  } else {
-        res.json({ result: false, error: resultMove });
+    res.json({ result: true, url: resultCloudinary.secure_url });
+    console.log(resultCloudinary.secure_url);
+
+    fs.unlinkSync(photoPath);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ result: false, error: error.message });
   }
-    console.log(photoPath + "consoleLogduPhotPath");
-  fs.unlinkSync(photoPath);
 });
+
+
 
 module.exports = router;
