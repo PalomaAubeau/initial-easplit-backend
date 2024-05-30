@@ -181,7 +181,6 @@ router.get("/user-events/:token", (req, res) => {
     });
 });
 
-<<<<<<< HEAD
 // route pour fetch l'organisateur d'un évènement
 router.get("/organizer/:eventId", (req, res) => {
   console.log('Received request for event:', req.params.eventId);
@@ -199,7 +198,6 @@ router.get("/organizer/:eventId", (req, res) => {
     });
 });
 
-=======
 //Route pour upload les fichiers
 //route test beranger
 router.post("/upload", async (req, res) => {
@@ -224,5 +222,4 @@ router.post("/upload", async (req, res) => {
 
 
 
->>>>>>> 20aba36d631e8b84e328ca2de81615c435a27efa
 module.exports = router;
