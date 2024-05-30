@@ -11,6 +11,9 @@ const Transaction = require("../models/transactions");
 const { checkBody } = require("../modules/checkBody");
 const bcrypt = require("bcrypt");
 const uid2 = require("uid2");
+const cloudinary = require("cloudinary").v2;
+const uniqid = require("uniqid");
+const fs = require("fs");
 
 const { addUserToGuest } = require("./users");
 
@@ -178,6 +181,7 @@ router.get("/user-events/:token", (req, res) => {
     });
 });
 
+<<<<<<< HEAD
 // route pour fetch l'organisateur d'un évènement
 router.get("/organizer/:eventId", (req, res) => {
   console.log('Received request for event:', req.params.eventId);
@@ -195,4 +199,30 @@ router.get("/organizer/:eventId", (req, res) => {
     });
 });
 
+=======
+//Route pour upload les fichiers
+//route test beranger
+router.post("/upload", async (req, res) => {
+  try {
+    if (!req.files || !req.files.photoFromFront) {
+      return res.status(400).json({ result: false, error: "No file uploaded" });
+    }
+
+    const photoPath = `/tmp/${uniqid()}.jpg`;
+    await req.files.photoFromFront.mv(photoPath);
+
+    const resultCloudinary = await cloudinary.uploader.upload(photoPath);
+    res.json({ result: true, url: resultCloudinary.secure_url });
+    console.log(resultCloudinary.secure_url);
+
+    fs.unlinkSync(photoPath);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ result: false, error: error.message });
+  }
+});
+
+
+
+>>>>>>> 20aba36d631e8b84e328ca2de81615c435a27efa
 module.exports = router;
