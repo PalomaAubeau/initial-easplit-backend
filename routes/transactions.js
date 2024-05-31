@@ -156,12 +156,13 @@ router.post("/create/expense", (req, res) => {
   // Création de la transaction
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
-  transaction.save().then(() => {
-    // Mise à jour du solde de l'événement et ajout de la transaction
+   // Save the transaction
+   transaction.save().then(() => {
+    // Update the event's balance and add the transaction
     Event.findByIdAndUpdate(
       req.body.emitter,
       {
-        $inc: { totalSum: -Number(req.body.amount) },
+        $inc: { remainingBalance: -Number(req.body.amount) },
         $push: { transactions: transaction._id },
       },
       { new: true }

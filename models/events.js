@@ -7,6 +7,10 @@ const eventSchema = mongoose.Schema({
   eventDate: Date,
   paymentDate: Date,
   description: String,
+  remainingBalance: {
+    type: Number,
+    default: this.totalSum
+  },
   guests: [
     {
       userId: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
