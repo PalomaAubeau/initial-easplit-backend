@@ -289,7 +289,7 @@ router.post("/signin", (req, res) => {
     }
   );
 });
-// Route qui va déconnecter un utilisateur
+// Route qui va déconnecter un utilisateur - non utilisée
 router.post("/logout", (req, res) => {
   // On cherche l'utilisateur avec le token donné
   User.findOne({ token: req.body.token }).then((data) => {
@@ -306,7 +306,7 @@ router.post("/logout", (req, res) => {
   });
 });
 
-// Route pour supprimer un utilisateur
+// Route pour supprimer un utilisateur - non utilisée
 router.delete("/user/:id", (req, res) => {
   User.deleteOne({ _id: req.params.id }).then((result) => {
     if (result.deletedCount > 0) {
@@ -317,13 +317,13 @@ router.delete("/user/:id", (req, res) => {
   });
 });
 
-// Route pour récuprer le solde / balance du participant
+// Route pour récuprer le solde / balance du participant - non utilisée
 router.get("/user/:id", (req, res) => {
   User.findById(req.params.id).then((user) => {
     res.json(user.balance);
   });
 });
-// récuperer les transactions du user
+// récuperer les transactions du user -  non utilisée
 router.get("/userTransactions/:token", async (req, res) => {
   try {
     const token = req.headers["authorization"];
@@ -346,6 +346,7 @@ router.get("/userTransactions/:token", async (req, res) => {
   }
 });
 
+// non utilisée
 router.get("/event/:id", (req, res) => {
   Event.findById(req.params.id)
     .populate("organizer")
@@ -365,6 +366,7 @@ router.get("/event/:id", (req, res) => {
     });
 });
 
+//non utilisée
 router.put("/balance/:token", async (req, res) => {
   try {
     const { token } = req.params;

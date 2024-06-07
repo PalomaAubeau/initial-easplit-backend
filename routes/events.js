@@ -181,19 +181,19 @@ router.get("/user-events/:token", (req, res) => {
     });
 });
 
-// route pour fetch l'organisateur d'un évènement
+// route pour fetch l'organisateur d'un évènement - non utilisée
 router.get("/organizer/:eventId", (req, res) => {
-  console.log('Received request for event:', req.params.eventId);
+  console.log("Received request for event:", req.params.eventId);
 
   Event.findById(req.params.eventId)
     .populate("organizer")
     .then((event) => {
       if (!event) {
-        console.log('Event not found:', req.params.eventId); 
+        console.log("Event not found:", req.params.eventId);
         res.json({ result: false, error: "Évènement non trouvé" });
         return;
       }
-      console.log('Found event:', event);
+      console.log("Found event:", event);
       res.json({ result: true, organizer: event.organizer });
     });
 });
@@ -219,6 +219,5 @@ router.post("/upload", async (req, res) => {
     res.status(500).json({ result: false, error: error.message });
   }
 });
-
 
 module.exports = router;

@@ -32,7 +32,7 @@ router.get("/expenses/:eventId", async (req, res) => {
   }
 });
 
-// Route pour le rechargement du solde d'un utilisateur
+// Route pour le rechargement du solde d'un utilisateur - non utilisée
 router.post("/create/reload", (req, res) => {
   // Vérification du corps de la requête
   if (!checkBody(req.body, ["emitter", "recipient", "type", "amount"])) {
@@ -64,7 +64,7 @@ router.post("/create/reload", (req, res) => {
   });
 });
 
-// Route pour créer un paiement
+// Route pour créer un paiement - non utilisée
 router.post("/create/payment", (req, res) => {
   // Vérification du corps de la requête
   if (
@@ -98,7 +98,7 @@ router.post("/create/payment", (req, res) => {
   });
 });
 
-// Route pour créer un remboursement
+// Route pour créer un remboursement - non utilisée
 router.post("/create/refund", (req, res) => {
   // Vérification du corps de la requête
   if (!checkBody(req.body, ["emitter", "type"])) {
@@ -156,8 +156,8 @@ router.post("/create/expense", (req, res) => {
   // Création de la transaction
   const transaction = new Transaction(req.body);
   // Sauvegarde de la transaction
-   // Save the transaction
-   transaction.save().then(() => {
+  // Save the transaction
+  transaction.save().then(() => {
     // Update the event's balance and add the transaction
     Event.findByIdAndUpdate(
       req.body.emitter,
@@ -200,7 +200,7 @@ router.get("/userTransactions/:token", async (req, res) => {
   }
 });
 
-// Route pour obtenir les détails d'une transaction spécifique
+// Route pour obtenir les détails d'une transaction spécifique - non utilisée
 router.get("/:transactionId", async (req, res) => {
   try {
     // Recherche de la transaction
@@ -219,7 +219,7 @@ router.get("/:transactionId", async (req, res) => {
   }
 });
 
-//Route pour créer un paient sur un évènement, ajouter la transaction dans la BDD (collections transactions et user), modifier statut du paiment de l'utilisateur sur EventScreen
+//Route pour créer un paiement sur un évènement, ajouter la transaction dans la BDD (collections transactions et user), modifier statut du paiment de l'utilisateur sur EventScreen
 router.post("/create/payment/:token/:eventUniqueId", async (req, res) => {
   const userCall = await User.findOne({ token: req.params.token });
   const eventCall = await Event.findOne({
